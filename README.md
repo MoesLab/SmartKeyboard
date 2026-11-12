@@ -144,3 +144,8 @@ The Radxa reported X DPMS enabled with 600-second standby/suspend/off timers. At
 The header Shut down control uses a themed confirmation and authenticated `/api/shutdown` endpoint. It saves the shared editor, cancels/releases queued key reports, then asks systemd-logind to power off after a 1.5-second UI acknowledgement delay. It never runs arbitrary commands or bypasses shutdown inhibitors. Failure returns an error to the GUI. Clear and Reload remain immediate. This new shutdown path is locally tested with a mocked power-off manager, NOT by shutting down the development PC; it still needs one controlled Radxa test.
 
 After requesting shutdown, keep power connected until the Radxa finishes powering down. A blank display or disconnected SSH session alone is not proof. Allow about 30 seconds; leave power connected if uncertain. Manual alternative: `sudo systemctl poweroff`. Normal system shutdown naturally closes all applications; the installer does not otherwise modify EZ Signage services.
+
+
+## Composer Send layout
+
+SEND occupies the wide lower-right composer footer. LF/BS/Home/End/Del have wider targets. Tap **QUICK TEXT ⇄ Keyboard** in the lower-panel heading to show the keyboard; tap **KEYBOARD ⇄ Quick Text** in that same location to return. The editor, fonts, upper panels and 48-button grid retain their previous dimensions. Switching preserves focus and selection.

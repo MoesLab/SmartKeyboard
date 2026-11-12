@@ -39,13 +39,12 @@ small { font-size:18px; font-weight:400; }
 #editor { width:100%; height:298px; resize:none; padding:14px 16px; font:27px/1.45 'Segoe UI','Noto Sans','DejaVu Sans',Arial,sans-serif; color:#efffff; border:2px solid var(--cyan); border-radius:8px 2px; background:#06121c; box-shadow:0 0 6px #4ff4ff50,inset 0 0 14px #24dfff08; }
 footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 #status { font-size:15px; color:#9ddce7; min-width:0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-#toggle-keyboard { width:280px; height:46px; font-size:21px; flex-shrink:0; }
 .composer-actions { display:flex; gap:6px; flex-shrink:0; }
-.composer-actions button { width:64px; height:46px; padding:3px; font-size:18px; }
-#send-text { width:126px; height:46px; flex-shrink:0; font-size:23px; font-weight:700; color:#dfffaf; border-color:#93ff2c; box-shadow:0 0 9px #76ff2760,inset 0 0 12px #77ff2020; }
+.composer-actions button { width:80px; height:46px; padding:3px; font-size:20px; }
+#send-text { width:330px; height:46px; flex-shrink:0; font-size:27px; font-weight:700; color:#dfffaf; border-color:#93ff2c; box-shadow:0 0 9px #76ff2760,inset 0 0 12px #77ff2020; }
 footer { gap:8px; }
 #status { flex:1; }
-#toggle-keyboard { width:236px; font-size:19px; }
+#toggle-keyboard,#hide-keyboard { width:350px; height:44px; padding:4px 12px; flex-shrink:0; text-align:left; font-size:22px; color:var(--cyan); }
 .macro-panel { display:grid; grid-template-rows:48px 294px 50px; gap:8px; }
 .macro-heading { margin:0; justify-content:space-between; }
 .macro-heading h2 { color:var(--yellow); }

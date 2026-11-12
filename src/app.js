@@ -103,7 +103,7 @@ function setKeyboardVisible(visible) {
   document.querySelector('#keyboard-panel').hidden = !visible;
   document.querySelector('#quick-panel').inert = visible;
   document.querySelector('#quick-panel').setAttribute('aria-hidden', String(visible));
-  document.querySelector('#toggle-keyboard').textContent = visible ? '⌨ Hide keyboard' : '⌨ Show keyboard';
+  document.querySelector('#toggle-keyboard').textContent = '☷ QUICK TEXT ⇄ Keyboard';
   document.querySelector('#toggle-keyboard').setAttribute('aria-expanded', String(visible));
   focusEditor();
 }

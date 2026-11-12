@@ -22,3 +22,5 @@
 - User explicitly requested a persistent fix for the verified 600-second display timer: launcher now disables X screen saver/DPMS on :0 at each startup. This authorized timer change is the exception to the earlier no-display-setup-change rule; do not change resolution or EZ Signage.
 - Shut down button requires themed confirmation and an authenticated backend call to logind PowerOff. Save the shared draft first, stop/release this app's queued keystrokes, and never claim a blank display/network loss proves power-off completion. Font sizes are approved; leave them unchanged.
 - Wireless keyboard receiver works on Windows; neither the external hub nor receiver enumerated on Radxa. Shared charger/hub power or data wiring remains unresolved pending the user's photo. Do not claim a faulty dongle or install keyboard drivers based on current evidence.
+
+- Composer footer: wide 330px SEND at the lower right, with 80px LF/BS/Home/End/Del. No keyboard toggle in the composer. The lower-panel QUICK TEXT/KEYBOARD heading is the switch, with matching 350x44px controls in the same position in both views. Keep editor geometry and fonts unchanged.
