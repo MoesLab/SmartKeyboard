@@ -1,0 +1,7 @@
+backups/*
+!backups/README.md
+*.log
+.env
+chromium-profile/
+touch-test/
+releases/
