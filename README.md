@@ -162,3 +162,7 @@ The keyboard header now offers English, فارسی, and Symbols. Farsi is a loca
 
 ### Themes and screen sleep
 Settings offers Neon Cyberpunk, Industrial AV and Modern Glass without changing geometry. Interface brightness has 35/65/100% presets (not monitor backlight control). Sleep now, or an optional 1/5/15-minute idle timer, displays a black touch-to-wake overlay. Idle sleep defaults off. One touch wakes without activating an underlying button; the draft and caret are restored. Bluetooth and Linux remain running. Appearance is included in JSON backups.
+
+Macro + Add captures the selected composer block, or the entire draft: first line is the button name, following lines are shortcuts (for example Copy then Ctrl+C). Invalid input now opens themed instructions with Show keyboard; it never silently creates a placeholder or alters the draft. Valid input asks once before saving the named macro.
+Graphics use static gradients, highlights and frame details, without animation loops or backdrop blur. Per-button drop-shadow filters were removed. Actual Radxa rendering cost and STT concurrency still require hardware measurement.
+While asleep, a dim time/connection indicator drifts slowly using one transform animation; hidden when awake. Reduced-motion preference disables the drift.

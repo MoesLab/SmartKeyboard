@@ -35,7 +35,12 @@ async function captureMacro(index) {
   try {
     if(!label||label.length>80||!rest.length)throw new Error('Type the name on line 1 and shortcut(s) below it, select that block, then hold a macro. Example: Copy followed by Ctrl+C on the next line.');
     shortcuts=parseMacro(rest.join('\n'));
-  }catch(error){status.textContent=error.message;focusEditor();return;}
+  }catch(error){
+    status.textContent=error.message;
+    const ready=await confirmSave('A macro needs a name on the first line and keyboard shortcuts below it. Example:'+String.fromCharCode(10,10)+'Copy'+String.fromCharCode(10)+'Ctrl+C'+String.fromCharCode(10,10)+'Use the composer and its keyboard to prepare this block. Select the block (or leave the whole draft), then press + Add again. Your current draft has not changed.',{title:'Prepare a new macro',confirmLabel:'Show keyboard'});
+    if(ready)setKeyboardVisible(true);
+    focusEditor();return;
+  }
   const targetWorkspace=activeWorkspace;
   if(!await confirmSave(`Save macro on ${workspaceNames[targetWorkspace]}?\n\n${label}\n${shortcuts.join(' → ')}`)){focusEditor();return;}
   pageMacros[targetWorkspace][index]={label,sequence:shortcuts.join('\n')};
@@ -76,6 +81,9 @@ function renderKeyMacros(){
   document.querySelector('#edit-macros').textContent=programmingMacros?'Cancel':'✎ Set';
   document.querySelector('#add-macro').disabled=macros.length>=300;
 }
+// Preserve the selected programming block when touch moves away from the editor.
+for(const id of ['add-macro','edit-macros'])document.getElementById(id).addEventListener('pointerdown',event=>event.preventDefault());
+document.querySelector('#add-macro').title='Add from composer: name on first line, shortcuts below';
 document.querySelector('#add-macro').addEventListener('click',()=>{
   const page=pageMacros[activeWorkspace];if(page.length<300)captureMacro(page.length);
 });

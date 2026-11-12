@@ -10,11 +10,12 @@ function applyAppearance(){
 }
 let lastActivity=Date.now(),screenAsleep=false,sleepSelection=null;
 const sleepOverlay=document.querySelector('#screen-saver');
+function updateSleepIndicator(){ document.querySelector("#sleep-clock").textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); document.querySelector("#sleep-connection").textContent=bluetoothState?.ready?"Bluetooth connected":"Bluetooth waiting / offline"; }
 function sleepScreen(){
  if(screenAsleep||finishConfirmation||bluetoothPanelOpen||shutdownRequested||window.smartKeyboardSelection?.isOpen()||bluetoothSending||bluetoothState?.queuedReports||bluetoothState?.pairingSeconds)return;
  if(settingsOpen)setSettingsOpen(false);
  remember();saveDraft();stopRepeat();sleepSelection=[...selection];screenAsleep=true;
- sleepOverlay.hidden=false;document.querySelector('main').inert=true;sleepOverlay.focus({preventScroll:true});
+ updateSleepIndicator();sleepOverlay.hidden=false;document.querySelector('main').inert=true;sleepOverlay.focus({preventScroll:true});
 }
 function wakeScreen(){
  if(!screenAsleep)return;
@@ -29,4 +30,5 @@ sleepOverlay.addEventListener('keydown',event=>{event.preventDefault();event.sto
 for(const type of ['pointerdown','keydown','input'])document.addEventListener(type,()=>{lastActivity=Date.now();},true);
 setInterval(()=>{if(!screenAsleep&&!settingsOpen&&Number(appearance.idle)>0&&Date.now()-lastActivity>=Number(appearance.idle)*1000)sleepScreen();},1000);
 applyAppearance();
+setInterval(()=>{if(screenAsleep)updateSleepIndicator();},15000);
 window.smartKeyboardScreen={sleep:sleepScreen,isAsleep:()=>screenAsleep};

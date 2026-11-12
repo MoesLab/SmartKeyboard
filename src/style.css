@@ -175,3 +175,30 @@ html[data-theme="industrial"] .neon-dialog { background:linear-gradient(145deg,#
 html[data-theme="glass"] .neon-dialog { background:linear-gradient(145deg,#123d57,#041526); box-shadow:0 0 18px #20b8f560; }
 html[data-theme="glass"] #macros button::after { background:linear-gradient(135deg,#123b52,#031724 60%,#0b2c3f); }
 html[data-theme="glass"] #macros button small,html[data-theme="glass"] .macro-pages span { color:#a9deef; }
+
+/* Static surface detail: no animation loops, canvas, backdrop blur or new filters. */
+:root { --frame-light:#ffe0ff99; --frame-dark:#361047; --surface-top:#12303c; --surface-bottom:#030b13; }
+:root[data-theme="industrial"] { --frame-light:#f4ddb099; --frame-dark:#352c19; --surface-top:#3b4547; --surface-bottom:#101719; }
+:root[data-theme="glass"] { --frame-light:#b9eeff99; --frame-dark:#092e4a; --surface-top:#174a65; --surface-bottom:#041b30; }
+.panel { position:relative; border-radius:14px 2px; box-shadow:inset 0 1px 0 var(--frame-light),inset 0 -2px 0 var(--frame-dark),0 0 6px #000b; }
+.panel::before { content:''; position:absolute; inset:5px; pointer-events:none; border:1px solid var(--frame-light); opacity:.45; clip-path:polygon(0 0,54px 0,54px 2px,2px 2px,2px 34px,0 34px,0 0,100% 0,100% 100%,calc(100% - 54px) 100%,calc(100% - 54px) calc(100% - 2px),calc(100% - 2px) calc(100% - 2px),calc(100% - 2px) calc(100% - 34px),100% calc(100% - 34px),100% 0); }
+html[data-theme="neon"] .panel { box-shadow:inset 0 1px 0 #fff4,0 0 3px #ffb5ff,0 0 8px #e33bff65,inset 0 0 4px #df36ff50; }
+button,html[data-theme="industrial"] button,html[data-theme="glass"] button { filter:none; }
+button::before { background:linear-gradient(135deg,#efffff 0%,var(--edge,var(--cyan)) 16%,var(--edge,var(--cyan)) 72%,#fff 100%); }
+button::after { background:linear-gradient(180deg,#c5f7ff25 0,#c5f7ff08 13%,transparent 47%,#0006 52%,#8ceeff12 100%),linear-gradient(135deg,var(--surface-top),var(--surface-bottom) 65%); box-shadow:inset 0 1px 0 #fff5,inset 0 -2px 0 #0009; }
+html[data-theme="industrial"] button::after { background:linear-gradient(180deg,#e4e6d82b,transparent 16%,#0002 48%,#0006 52%,#aab6b60d),linear-gradient(135deg,var(--surface-top),var(--surface-bottom) 65%); }
+html[data-theme="glass"] button::after { background:linear-gradient(165deg,#a8edff38 0,transparent 42%),linear-gradient(180deg,#7fdcff18 0,#7fdcff08 46%,#00112066 49%,#062436 100%),#071f31; }
+html[data-theme="industrial"] header { background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 4px),linear-gradient(100deg,#393d3d,#171d20); }
+html[data-theme="glass"] header { background:linear-gradient(175deg,#a1dcff25,transparent 50%),linear-gradient(90deg,#0e405a,#04182a); }
+html[data-theme="neon"] header { background:linear-gradient(120deg,#280b352b,transparent 65%); }
+.panel-heading,.macro-heading { box-shadow:0 1px 0 #000a,0 2px 0 #b9edff0b; }
+html[data-theme="neon"] h1 { color:transparent; background:linear-gradient(100deg,#43f4ff 5%,#a8ffff 46%,#ef74ff 68%,#fff 100%); background-clip:text; -webkit-background-clip:text; text-shadow:none; }
+html[data-theme="industrial"] #macros button::after { background:linear-gradient(180deg,#e8c27420,transparent 44%,#0005 50%),linear-gradient(135deg,#302c1d,#11130c); }
+html[data-theme="glass"] #macros button::after { background:linear-gradient(165deg,#a8edff30,transparent 45%),linear-gradient(180deg,#15425a,#041a2a 52%,#092a3e); }
+/* Keep operational and selected states unmistakable over the decorative finish. */
+button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px 0 #fff9,inset 0 0 12px #ffffff20; }
+#send-text::before { background:linear-gradient(135deg,#edffce,#93ff2c 35%,#93ff2c 75%,#edffce); }
+#send-text[data-invalid="true"]::before { background:linear-gradient(135deg,#fff0d0,#ffbb42); }
+.sleep-indicator { display:flex; flex-direction:column; align-items:center; gap:12px; color:#41494e; font:16px/1.4 "Segoe UI",sans-serif; pointer-events:none; animation:sleep-drift 120s ease-in-out infinite alternate; }
+.sleep-indicator strong { font-size:17px; font-weight:500; letter-spacing:2px; } .sleep-indicator time { color:#4b545a; padding:0; border:0; background:none; font-size:28px; }
+@keyframes sleep-drift { from { transform:translate(-12vw,-10vh); } to { transform:translate(12vw,10vh); } } @media(prefers-reduced-motion:reduce) { .sleep-indicator { animation:none; } }
