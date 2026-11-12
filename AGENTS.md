@@ -33,3 +33,5 @@
 - Settings backup uses a strict whitelist of browser-local settings and schema validation. Never export bridge tokens, BlueZ pairings or credentials. Import requires themed confirmation and a before-restore download; restore only known keys, roll back stored values on quota failure, and reload. Preserve editor dimensions and approved fonts.
 
 - Appearance: Neon Cyberpunk, Industrial AV and Modern Glass are color/surface changes only. Persist appearance in whitelisted backups. App sleep is a black touch-to-wake overlay, not OS suspend or monitor backlight control; preserve caret, draft, Bluetooth and all geometry. Optional idle timer defaults off. Never sleep over a send or pairing request.
+
+- Workspace library v1 fills only entirely empty Quick Text slots up to 80 occupied per workspace and appends missing Windows shortcuts by canonical sequence. Preserve every custom slot, macro, draft and extra page. Keep the migration marker in validated backups and do not repopulate deliberately cleared slots after migration. Win and Meta are the same host modifier.

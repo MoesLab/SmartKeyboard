@@ -1,6 +1,6 @@
 'use strict';
 // These buttons describe host shortcuts. They never mutate the composer.
-const keyPattern = /^(?:(?:Ctrl|Alt|Shift|Meta|Super)\+)*(?:[a-z0-9]|F(?:[1-9]|1[0-2])|Enter|Tab|Escape|Backspace|Delete|Home|End|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Space)$/i;
+const keyPattern = /^(?:(?:Ctrl|Alt|Shift|Meta|Super|Win)\+)*(?:[a-z0-9]|F(?:[1-9]|1[0-2])|Enter|Tab|Escape|Backspace|Delete|Home|End|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Space)$/i;
 function parseMacro(sequence) {
   const lines=sequence.split('\n').filter(line=>line.trim());
   if (!lines.length || lines.length>100) throw new Error('Use 1 to 100 shortcut lines.');
@@ -57,7 +57,7 @@ function renderKeyMacros(){
     const index=keyMacroPage*6+offset;
     const button=document.createElement('button');
     const name=document.createElement('strong');name.textContent=macro.label;
-    const shortcuts=document.createElement('small');shortcuts.textContent=parseMacro(macro.sequence).join(' → ');
+    const shortcuts=document.createElement('small');shortcuts.textContent=parseMacro(macro.sequence).join(' → ').replace(/\bMeta\+/g,'Win+');
     button.append(name,shortcuts);button.title=`${macro.label}\n${shortcuts.textContent}\nSend shortcut to paired Bluetooth PC`;
     let timer;let held=false;
     button.addEventListener('pointerdown',event=>{

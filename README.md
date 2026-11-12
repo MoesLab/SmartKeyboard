@@ -171,3 +171,28 @@ Text SEND audio follows accepted backend delivery: light paired notes while queu
 
 Settings > Tone volume offers 25/50/75/100% plus Test sound. It scales app button and SEND tones; 50% preserves the previous level. It is saved and included in JSON backups. Tone off remains the master mute. This does not change the Linux system volume.
 The composer lights steadily cyan during a tracked text send, briefly green when Bluetooth reports finish, or amber when interrupted. The draft, caret, fonts and geometry remain unchanged; there is no rapid flashing.
+
+
+### Workspace phrase and Windows shortcut library
+
+On first load of workspace-library-v1, each workspace is filled up to 80 occupied
+Quick Text slots out of its existing 96. Only entirely empty slots are filled;
+custom labels/text, extra pages, existing macros and the shared draft are preserved.
+Default covers everyday work; Linux and Windows cover troubleshooting/support;
+Email covers correspondence; Personal covers daily conversation. Quick Text inserts
+plain text only and never runs a shell command. Existing terminal snippets remain.
+
+Windows includes 60 starter shortcuts across editing, windows, File Explorer,
+screenshots, virtual desktops and browser tasks (six buttons per macro page).
+Existing shortcuts are preserved and equivalent sequences are not duplicated;
+custom macros can make the total higher. Win+ labels send the Windows/Meta modifier.
+Some actions depend on the focused application, Windows version or enabled features.
+Close active window can prompt for shutdown if no app window is open. Lock PC locks
+the target computer. These are intentional named shortcuts, not automatic actions.
+
+The migration marker is included in exports so restored updated backups keep their
+empty custom slots. Importing a backup from before this library fills its empty
+slots on the next reload, while preserving its occupied slots and custom macros.
+The library adds no background timers and changes no control dimensions.
+
+Windows shortcut reference: https://support.microsoft.com/en-us/accessibility/windows/keyboard-shortcuts-in-windows
