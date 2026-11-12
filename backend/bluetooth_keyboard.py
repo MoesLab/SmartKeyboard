@@ -226,6 +226,7 @@ class Controller:
         self.bus=bus;self.adapter=adapter;self.objects={};self.registered=False
         self.error='Starting';self.pair_until=0;self.pair_display=None;self.old_pairing=None
         self.protocol=1;self.suspended=False;self.queue=collections.deque();self.queue_target=None
+        self.shutdown_pending=False;self.shutdown_error=''
         self.last_message='Bluetooth keyboard starting';self.input=None;self.boot_input=None
         self.props=dbus.Interface(bus.get_object('org.bluez',adapter),PROPS)
         self.agent=PairingAgent(bus,self)
@@ -258,7 +259,7 @@ class Controller:
     def active_report(self): return self.boot_input if self.protocol==0 else self.input
 
     def ready(self):
-        return self.registered and len(self.hosts())==1 and self.active_report().notifying and not self.suspended
+        return self.registered and not getattr(self,'shutdown_pending',False) and len(self.hosts())==1 and self.active_report().notifying and not self.suspended
 
     def snapshot(self):
         hosts=self.hosts()
@@ -266,7 +267,8 @@ class Controller:
                 'host':str(hosts[0][1].get('Alias','Paired PC')) if len(hosts)==1 else '',
                 'connectedHosts':len(hosts),'queuedReports':len(self.queue),
                 'pairingSeconds':max(0,int(self.pair_until-time.monotonic())),
-                'pairing':self.agent.pending,'displayPasskey':self.pair_display,'message':self.last_message}
+                'pairing':self.agent.pending,'displayPasskey':self.pair_display,'message':self.last_message,
+                'shutdownPending':getattr(self,'shutdown_pending',False),'shutdownError':getattr(self,'shutdown_error','')}
 
     def protocol_write(self,value):
         if value not in (b'\0',b'\1'): raise NotSupported('Protocol must be boot or report')
@@ -317,8 +319,34 @@ class Controller:
             self.agent.resolve(False);self.close_pairing();self.pair_display=None
         return True
 
+    def request_shutdown(self,data):
+        if data.get('confirm') is not True:
+            raise ValueError('Shutdown requires confirmation on the touchscreen.')
+        manager=dbus.Interface(self.bus.get_object('org.freedesktop.login1','/org/freedesktop/login1'),
+                               'org.freedesktop.login1.Manager')
+        if str(manager.CanPowerOff())!='yes':
+            raise ValueError('Linux cannot power off without further authorization. Use MobaXterm: sudo systemctl poweroff')
+        self.queue.clear();self.input.emit(RELEASE);self.boot_input.emit(RELEASE)
+        self.agent.resolve(False);self.close_pairing()
+        self.shutdown_pending=True;self.shutdown_error=''
+        self.last_message='Orderly shutdown requested; wait until the Radxa finishes powering down.'
+        def failed(error):
+            self.shutdown_pending=False;self.shutdown_error='Shutdown failed: '+str(error)
+            self.last_message=self.shutdown_error
+            logging.error(self.shutdown_error)
+        def power_off():
+            try:
+                manager.PowerOff(dbus.Boolean(False),reply_handler=lambda:None,error_handler=failed)
+            except Exception as error: failed(error)
+            return False
+        # Give the HTTP acknowledgement and in-app notice time to render.
+        GLib.timeout_add(1500,power_off)
+        return {'ok':True,'message':self.last_message}
+
     def handle(self,route,data):
         if route=='/api/status': return self.snapshot()
+        if getattr(self,'shutdown_pending',False): raise ValueError('Shutdown is already in progress.')
+        if route=='/api/shutdown': return self.request_shutdown(data)
         if route=='/api/pair': return self.open_pairing()
         if route=='/api/send': return self.enqueue(encode_text(data.get('text')))
         if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')))

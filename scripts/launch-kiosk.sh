@@ -29,9 +29,13 @@ if command -v xset >/dev/null 2>&1; then
     sleep 1
   done
   if [ "$ready" != true ]; then echo 'Display session did not become ready.'; exit 1; fi
-  # Wake once at launch; do not change screen timers or desktop settings.
+  # User requested a kiosk that stays awake. Reapply at each graphical start.
+  # Only the verified :0 X session is affected; no system service is changed.
   xset s reset || true
-  xset dpms force on || true
+  xset s off || true
+  xset s noblank || true
+  xset -dpms || true
+  echo 'Smart Keyboard keep-awake requested: screen saver off; DPMS disabled.'
 fi
 
 exec "$browser" \

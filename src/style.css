@@ -116,3 +116,5 @@ button:active::after,button[aria-pressed="true"]::after { background:linear-grad
 #bluetooth-passkey { width:100%; height:48px; text-align:center; font-size:32px; letter-spacing:12px; color:var(--cyan); background:#06121c; border:1px solid var(--cyan); }
 #bluetooth-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
 #bluetooth-keypad button { height:48px; }
+
+#shutdown-open { width:132px; height:44px; padding:4px; font-size:18px; --edge:#ff667e; color:#ffd4dc; }

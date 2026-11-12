@@ -33,6 +33,11 @@ window.smartKeyboardTransport={
 };
 function renderBluetooth(){
   const state=bluetoothState;
+  if(state?.shutdownError && shutdownRequested){
+    shutdownRequested=false;document.querySelector('#shutdown-panel').hidden=true;
+    for(const selector of ['header','.cockpit','.lower-panel'])document.querySelector(selector).inert=false;
+    status.textContent=state.shutdownError;focusEditor();
+  }
   btButton.textContent=state?.ready?'● BT connected':state?.registered?'◉ Bluetooth':'○ BT offline';
   btButton.setAttribute('aria-label',state?.ready?'Bluetooth connected to '+state.host:'Bluetooth connection settings');
   document.querySelector('#send-text').title=state?.ready?'Send whole composer text to '+state.host:'Pair a PC through Bluetooth before sending';
@@ -103,3 +108,19 @@ document.addEventListener('keydown',event=>{
   }
 });
 setInterval(pollBluetooth,1500);pollBluetooth();
+
+// Authenticated, explicit-confirmation-only power-off. Never infer completion
+// from an HTTP disconnect or a blank display.
+let shutdownRequested=false;
+document.querySelector('#shutdown-open').addEventListener('pointerdown',event=>event.preventDefault());
+document.querySelector('#shutdown-open').addEventListener('click',async()=>{
+  if(shutdownRequested)return;
+  const accepted=await confirmSave('Shut down the Radxa now? This closes running applications and disconnects Bluetooth. Keep power connected until shutdown has finished.',{title:'Shut down Radxa?',confirmLabel:'Shut down'});
+  if(!accepted){focusEditor();return;}
+  saveDraft();
+  try{
+    await bluetoothRequest('/api/shutdown',{confirm:true});
+    shutdownRequested=true;document.querySelector('#shutdown-panel').hidden=false;
+    for(const selector of ['header','.cockpit','.lower-panel'])document.querySelector(selector).inert=true;
+  }catch(error){status.textContent=error.message;focusEditor();}
+});

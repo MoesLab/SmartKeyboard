@@ -7,7 +7,7 @@ import sys
 import threading
 import types
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 # D-Bus is Linux-only. Model its decorators/types to test our state machine
 # and object hierarchy here, without pretending to test Bluetooth hardware.
@@ -67,6 +67,30 @@ class BluetoothLogic(unittest.TestCase):
     def test_pairing_requires_open_window(self):
         item=controller();agent=keyboard.PairingAgent(None,item);reply=Mock();error=Mock()
         agent.request('/dev/PC','confirm',reply,error,'123456');error.assert_called_once();reply.assert_not_called()
+
+    def test_shutdown_confirmation_and_delayed_call(self):
+        item=controller();item.bus=Mock();item.agent.resolve=Mock();item.close_pairing=Mock()
+        manager=Mock();manager.CanPowerOff.return_value='yes'
+        with patch.object(keyboard.dbus,'Interface',return_value=manager,create=True), patch.object(keyboard.GLib,'timeout_add',create=True) as schedule:
+            with self.assertRaises(ValueError): item.handle('/api/shutdown',{})
+            manager.PowerOff.assert_not_called();schedule.assert_not_called()
+            item.queue.extend(keyboard.encode_text('a'))
+            self.assertTrue(item.handle('/api/shutdown',{'confirm':True})['ok'])
+            self.assertTrue(item.shutdown_pending);self.assertFalse(item.queue)
+            manager.PowerOff.assert_not_called()
+            self.assertEqual(schedule.call_args.args[0],1500)
+            with self.assertRaises(ValueError): item.handle('/api/send',{'text':'x'})
+            schedule.call_args.args[1]()
+            self.assertEqual(manager.PowerOff.call_args.args,(False,))
+            manager.PowerOff.call_args.kwargs['error_handler'](RuntimeError('inhibited'))
+            self.assertFalse(item.shutdown_pending);self.assertIn('inhibited',item.shutdown_error)
+
+    def test_shutdown_authorization_failure_keeps_queue(self):
+        item=controller();item.bus=Mock();manager=Mock();manager.CanPowerOff.return_value='no'
+        item.queue.extend(keyboard.encode_text('a'));count=len(item.queue)
+        with patch.object(keyboard.dbus,'Interface',return_value=manager,create=True):
+            with self.assertRaises(ValueError): item.handle('/api/shutdown',{'confirm':True})
+        self.assertEqual(len(item.queue),count);manager.PowerOff.assert_not_called()
 
     def test_http_requires_origin_and_secret(self):
         item=controller();server=keyboard.ThreadingHTTPServer(('127.0.0.1',0),keyboard.bridge_handler(item,'secret',0))

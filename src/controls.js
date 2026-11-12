@@ -1,8 +1,10 @@
 'use strict';
 // The dialog stays inside the fixed canvas and needs no external keyboard.
 let finishConfirmation = null;
-function confirmSave(message) {
+function confirmSave(message,options={}) {
   if (finishConfirmation) return Promise.resolve(false);
+  document.querySelector('#confirmation-title').textContent=options.title||'Save button';
+  document.querySelector('#confirmation-save').textContent=options.confirmLabel||'Save button';
   const overlay = document.querySelector('#confirmation');
   document.querySelector('#confirmation-text').textContent = message;
   overlay.hidden = false;
