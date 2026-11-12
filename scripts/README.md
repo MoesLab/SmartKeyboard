@@ -1,5 +1,7 @@
 # Scripts
 
+`restart-kiosk.sh` recovers a blank Smart Keyboard window by gracefully stopping only main Chromium processes belonging to the current user whose command line contains the exact `~/SmartKeyboard/kiosk-profile` argument, then relaunching the same profile. It preserves saved browser data and does not target test profiles or EZ Signage. It refuses to force-kill a process that does not exit within twelve seconds. Run without sudo.
+
 ## Bluetooth keyboard service
 
 `install-bluetooth-keyboard.sh` installs this project's new `smartkeyboard-bluetooth.service`, enables it at boot, and restarts only that service. Run with sudo from the radxa account after copying backend, scripts, and src. The working Linux Bluetooth driver must already be installed. No pip or Bluetooth configuration replacement is performed. See `backend/README.md` for hardware-validation status, pairing, limits, diagnostics, and disabling the service. Reload the existing GUI after service installation to read its locally generated bridge token.
