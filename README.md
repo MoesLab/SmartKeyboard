@@ -69,6 +69,10 @@ Quick Text inserts a phrase. To program a button, type or select text in the sha
 
 Save confirmation appears in a neon panel within the app, with Save and Cancel touch buttons. Clear and Reload have no confirmation. The composer toolbar includes Select, Copy, Cut, Paste, LF, repeating BS, Home, End, and Delete. Clipboard access depends on browser permissions. S/M/L choose 20/27/34px composer text without resizing the editor. The header Tone toggle controls a short locally generated beep and saves the preference; sound requires an available audio output and may start only after the first touch. Existing 60-slot Quick Text sets expand to 96 slots without dropping saved entries.
 
+Composer controls now use a large left column and bottom toolbar. The editor has a clean sans-serif font and no background grid. Quick Text labels start at 14px and shrink to 10px when needed; exceptionally long content can still exceed a fixed slot. SEND is visible but reports that USB HID is not connected and preserves the draft without pretending to transmit it.
+
+To expand the current workspace, Quick Text **+ Page** adds 48 blank slots and opens them (up to 20 pages per workspace). Macros **+ Add** captures a name and shortcut block from the editor and creates a new macro, paging automatically (up to 300 macros per workspace). Existing entries remain intact. These settings are saved on the current device/browser, not automatically shared through GitHub.
+
 Macro buttons show a name on top and shortcut(s) underneath. They never insert text or execute local previews in the editor. To program one, type the name on line 1 and shortcuts on following lines in the main editor, select the block, then hold a destination macro and confirm. For example:
 
 ```text

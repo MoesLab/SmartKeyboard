@@ -176,7 +176,7 @@ try {
     }
   }
   const savedQuick = JSON.parse(localStorage.getItem('smartKeyboard.quickText.v2'));
-  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && [60,96].includes(p.length) && p.every(q => q && typeof q.label === 'string' && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
+  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && p.length >= 48 && p.length <= 960 && (p.length === 60 || p.length % 48 === 0) && p.every(q => q && typeof q.label === 'string' && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
 } catch { /* Keep defaults when storage is unavailable. */ }
 quickTexts = quickTexts.map(page => [...page,...Array.from({length:Math.max(0,96-page.length)},()=>({label:'',text:''}))]);
 function saveDraft() {
@@ -222,9 +222,15 @@ function renderQuick() {
     });
     container.append(button);
   });
-  document.querySelector('#quick-page').textContent = `${workspaceNames[activeWorkspace]} · ${quickPage + 1} / 2`;
+  for (const button of container.children) {
+    let size=14;
+    while(size>10 && (button.scrollHeight>button.clientHeight || button.scrollWidth>button.clientWidth)) button.style.fontSize=`${--size}px`;
+  }
+  const pageCount=Math.ceil(quickTexts[activeWorkspace].length/48);
+  document.querySelector('#quick-page').textContent = `${workspaceNames[activeWorkspace]} · ${quickPage + 1} / ${pageCount}`;
   document.querySelector('#quick-prev').disabled = quickPage === 0;
-  document.querySelector('#quick-next').disabled = quickPage === 1;
+  document.querySelector('#quick-next').disabled = quickPage === pageCount-1;
+  document.querySelector('#add-quick-page').disabled = pageCount >= 20;
 }
 function renderWorkspaces() {
   const nav = document.querySelector('#workspaces'); nav.replaceChildren();
@@ -242,8 +248,16 @@ function renderWorkspaces() {
     nav.append(button);
   });
 }
-document.querySelector('#quick-prev').addEventListener('click', () => { quickPage = 0; renderQuick(); focusEditor(); });
-document.querySelector('#quick-next').addEventListener('click', () => { quickPage = 1; renderQuick(); focusEditor(); });
+document.querySelector('#quick-prev').addEventListener('click', () => { quickPage--; renderQuick(); focusEditor(); });
+document.querySelector('#quick-next').addEventListener('click', () => { quickPage++; renderQuick(); focusEditor(); });
+document.querySelector('#add-quick-page').addEventListener('click',()=>{
+  const page=quickTexts[activeWorkspace];if(page.length>=960)return;
+  page.push(...Array.from({length:48},()=>({label:'',text:''})));
+  quickPage=page.length/48-1;
+  try{localStorage.setItem('smartKeyboard.quickText.v2',JSON.stringify(quickTexts));status.textContent='48 new Quick Text slots added. Hold a slot to save editor text.';}
+  catch{status.textContent='Page added for this visit only; storage unavailable';}
+  renderQuick();focusEditor();
+});
 document.querySelector('#quick-edit').addEventListener('click', () => { status.textContent = 'Type/select text in the editor, hide keyboard, then hold the destination Quick Text button to save.'; focusEditor(); });
 editor.value = sharedDraft; selection = [editor.value.length,editor.value.length];
 renderWorkspaces(); renderQuick(); setKeyboardVisible(false);

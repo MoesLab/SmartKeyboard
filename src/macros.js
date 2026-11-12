@@ -20,7 +20,7 @@ let pageMacros=seeds.map(page=>page.map(([label,sequence])=>({label,sequence})))
 const keyMacroStorage='smartKeyboard.pageKeyMacros.v2';
 try {
   const saved=JSON.parse(localStorage.getItem(keyMacroStorage));
-  if (Array.isArray(saved)&&saved.length===5&&saved.every(page=>Array.isArray(page)&&page.length>0&&page.length<=30&&page.every(m=>{
+  if (Array.isArray(saved)&&saved.length===5&&saved.every(page=>Array.isArray(page)&&page.length>0&&page.length<=300&&page.every(m=>{
     if(!m||typeof m.label!=='string'||!m.label.trim()||m.label.length>80||typeof m.sequence!=='string')return false;
     try{parseMacro(m.sequence);return true;}catch{return false;}
   })))pageMacros=saved;
@@ -39,6 +39,7 @@ async function captureMacro(index) {
   const targetWorkspace=activeWorkspace;
   if(!await confirmSave(`Save macro on ${workspaceNames[targetWorkspace]}?\n\n${label}\n${shortcuts.join(' → ')}`)){focusEditor();return;}
   pageMacros[targetWorkspace][index]={label,sequence:shortcuts.join('\n')};
+  keyMacroPage=Math.floor(index/6);
   try{localStorage.setItem(keyMacroStorage,JSON.stringify(pageMacros));status.textContent='Macro name and shortcuts saved';}
   catch{status.textContent='Macro saved for this visit only; storage unavailable';}
   programmingMacros=false;renderKeyMacros();focusEditor();
@@ -72,7 +73,11 @@ function renderKeyMacros(){
   document.querySelector('#macros-prev').disabled=keyMacroPage===0;
   document.querySelector('#macros-next').disabled=keyMacroPage===count-1;
   document.querySelector('#edit-macros').textContent=programmingMacros?'Cancel':'✎ Set';
+  document.querySelector('#add-macro').disabled=macros.length>=300;
 }
+document.querySelector('#add-macro').addEventListener('click',()=>{
+  const page=pageMacros[activeWorkspace];if(page.length<300)captureMacro(page.length);
+});
 document.querySelector('#macros-prev').addEventListener('click',()=>{keyMacroPage--;renderKeyMacros();focusEditor();});
 document.querySelector('#macros-next').addEventListener('click',()=>{keyMacroPage++;renderKeyMacros();focusEditor();});
 document.querySelector('#edit-macros').addEventListener('click',()=>{
