@@ -9,3 +9,5 @@ work/
 kiosk-profile/
 logs/
 bt-build-*/
+src/bridge-config.js
+__pycache__/

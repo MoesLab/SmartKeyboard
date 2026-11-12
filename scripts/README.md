@@ -1,5 +1,9 @@
 # Scripts
 
+## Bluetooth keyboard service
+
+`install-bluetooth-keyboard.sh` installs this project's new `smartkeyboard-bluetooth.service`, enables it at boot, and restarts only that service. Run with sudo from the radxa account after copying backend, scripts, and src. The working Linux Bluetooth driver must already be installed. No pip or Bluetooth configuration replacement is performed. See `backend/README.md` for hardware-validation status, pairing, limits, diagnostics, and disabling the service. Reload the existing GUI after service installation to read its locally generated bridge token.
+
 ## Tested Bluetooth driver persistence
 
 The Radxa's installed AIC driver was built for Android; a copied build with `CONFIG_BLUEDROID=0` successfully exposed hci0 to BlueZ. `install-bluetooth-driver.sh` installs ONLY that already-tested module into `updates/smartkeyboard` and adds a kernel-specific depmod override. It checks the module name, kernel version and Bluetooth dependency, verifies which file is selected, and leaves the packaged DKMS module intact. Run with sudo and the full path to the tested `.ko`. It does not unload anything, change Wi-Fi, enable a HID profile, or modify EZ Signage. On an installation error, it disables only its own new files and rebuilds the module index.

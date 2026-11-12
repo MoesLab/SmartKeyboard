@@ -83,7 +83,8 @@ document.querySelectorAll('#font-sizes button').forEach(button=>button.addEventL
 applyFontSize(fontSize);
 for(const button of document.querySelectorAll('.tools button,.composer-actions button,#font-sizes button,#send-text'))button.addEventListener('pointerdown',event=>event.preventDefault());
 document.querySelector('#send-text').addEventListener('click',()=>{
-  status.textContent=editor.value?'SEND unavailable: USB HID is not connected. Your text was kept; nothing sent.':'Type text to send. USB HID is not connected.';
+  if(editor.value && window.smartKeyboardTransport){window.smartKeyboardTransport.sendText(editor.value);return;}
+  status.textContent=editor.value?'Bluetooth service unavailable; nothing sent.':'Type text in the composer to send.';
   focusEditor();
 });
 document.querySelector('#line-feed').addEventListener('click',()=>insert('\n'));

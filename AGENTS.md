@@ -7,7 +7,7 @@
 - Page and workspace switching must preserve control dimensions and positions. Use fixed slots and explicit paging.
 - Preserve existing saved named macros and both reference images.
 - Do not modify EZ Signage services, display setup, or existing Chromium profiles.
-- Bluetooth HID is the user's preferred host connection. USB HID is no longer the primary transport plan. No Bluetooth keyboard backend is implemented yet: do not claim pairing, Send, or macros are functional until tested with the actual Radxa and PC.
+- Bluetooth HID is the user's preferred host connection. USB HID is no longer the primary transport plan. The new BlueZ GATT backend is implemented and locally tested, but not yet hardware-validated. Do not claim successful pairing or delivery until tested with the actual Radxa and PC. See backend/README.md.
 - Verify geometry remains identical across keyboard toggles and page/workspace switches. Verify no overflow at 1920 x 1080.
 - Do not present USB HID, dictation, script execution, or formatting controls as operational before they are implemented.
 - Macros are key combinations or sequences (optionally mixed with text), not a second Quick Text panel. Preserve legacy text-macro storage. Local previews must explicitly identify their target; OS shortcuts require a real HID bridge.
@@ -16,4 +16,4 @@
 - Macro buttons display the name on top and shortcut sequence below. They must NEVER run a preview in or insert anything into the composer. Without HID, report that nothing was sent.
 - Program Quick Text from the selected composer text (or whole draft) by holding a destination button and confirming once. Save both label and text together. Program macros from a selected block: name on first line, shortcuts below. Do not require typing into a modal form without an accessible keyboard.
 - Clear and Reload act immediately without confirmation. Saving buttons uses the in-app neon dialog, never a system alert/confirm. Keep the composer S/M/L font controls and key-tone toggle; changing font size must not resize the editor.
-- Composer: large left-column editing controls and bottom-row LF/BS/Home/End/Del, a prominent SEND button, clean sans-serif text, no background grid. SEND must explicitly report unconnected HID rather than fake a transmission. Quick Text labels start at 14px with auto-fit down to 10px. Keep + Page and macro + Add controls for expansion.
+- Composer: large left-column editing controls and bottom-row LF/BS/Home/End/Del, a prominent SEND button, clean sans-serif text, no background grid. SEND uses the authenticated local Bluetooth bridge and must report errors rather than fake a transmission. Quick Text labels start at 14px with auto-fit down to 10px. Keep + Page and macro + Add controls for expansion.

@@ -109,3 +109,10 @@ button:active::after,button[aria-pressed="true"]::after { background:linear-grad
 #send-text::after { background:linear-gradient(135deg,#26460d,#091400); }
 #clear { --edge:#ff4b68; }
 .brand>span { display:block; width:86px; height:40px; font-size:0; padding:0; transform:skewX(-24deg); background:linear-gradient(90deg,#ed48ff 0 25%,transparent 25% 34%,#36f0ff 34% 60%,transparent 60% 69%,#56e3ff 69% 95%,transparent 95%); filter:drop-shadow(0 0 7px #34eaff90); }
+#bluetooth-open { width:165px; height:44px; padding:6px; font-size:18px; letter-spacing:0; }
+#bluetooth-panel .neon-dialog { max-height:1010px; overflow:auto; }
+#bluetooth-info,#bluetooth-device { font-size:20px; }
+#bluetooth-code,#bluetooth-display-code { color:var(--yellow); font-size:27px; }
+#bluetooth-passkey { width:100%; height:48px; text-align:center; font-size:32px; letter-spacing:12px; color:var(--cyan); background:#06121c; border:1px solid var(--cyan); }
+#bluetooth-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+#bluetooth-keypad button { height:48px; }

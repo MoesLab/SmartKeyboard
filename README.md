@@ -2,6 +2,8 @@
 
 Lightweight touchscreen prototype for the Radxa Cubie A7Z. Uses plain HTML, CSS, and JavaScript with no build step or downloaded libraries.
 
+**Bluetooth milestone:** the persistent Linux-mode driver is confirmed after reboot. A new BLE keyboard backend and GUI bridge are now implemented and locally tested; actual Radxa registration and Windows pairing remain to be tested. See [backend/README.md](backend/README.md) for installation and pairing. Earlier USB/offline-only descriptions below document the prototype history; the new Send and macro controls use Bluetooth when its service is available.
+
 ## On your Windows PC
 
 The intended source folder is `D:\Projects\SmartKeyboard`. Open `src\index.html` in Edge or Chrome. Edit those three files with your preferred editor.

@@ -53,7 +53,7 @@ function renderKeyMacros(){
     const button=document.createElement('button');
     const name=document.createElement('strong');name.textContent=macro.label;
     const shortcuts=document.createElement('small');shortcuts.textContent=parseMacro(macro.sequence).join(' → ');
-    button.append(name,shortcuts);button.title=`${macro.label}\n${shortcuts.textContent}\nUSB HID not connected`;
+    button.append(name,shortcuts);button.title=`${macro.label}\n${shortcuts.textContent}\nSend shortcut to paired Bluetooth PC`;
     let timer;let held=false;
     button.addEventListener('pointerdown',event=>{
       event.preventDefault();if(!event.isPrimary||event.button!==0)return;
@@ -65,11 +65,12 @@ function renderKeyMacros(){
     button.addEventListener('click',()=>{
       cancel();if(held){held=false;return;}
       if(programmingMacros){captureMacro(index);return;}
-      status.textContent=`${macro.label} · ${shortcuts.textContent} · USB HID not connected; nothing sent.`;
+      if(window.smartKeyboardTransport){window.smartKeyboardTransport.sendMacro(parseMacro(macro.sequence));return;}
+      status.textContent=`${macro.label} · Bluetooth service unavailable; nothing sent.`;
       focusEditor();
     });container.append(button);
   });
-  document.querySelector('#macro-page').textContent=`${keyMacroPage+1} / ${count} · USB HID OFF`;
+  document.querySelector('#macro-page').textContent=`${keyMacroPage+1} / ${count} · Bluetooth`;
   document.querySelector('#macros-prev').disabled=keyMacroPage===0;
   document.querySelector('#macros-next').disabled=keyMacroPage===count-1;
   document.querySelector('#edit-macros').textContent=programmingMacros?'Cancel':'✎ Set';
