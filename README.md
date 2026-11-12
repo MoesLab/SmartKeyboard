@@ -107,6 +107,15 @@ Run the copy only if the clone or pull succeeds. Refresh the existing Smart Keyb
 
 ## Desktop startup
 
+The user's actual `.xinitrc` runs `exec openbox-session`. For that setup, pull the repository, copy `src` and `scripts` into `~/SmartKeyboard`, then use:
+
+```sh
+bash ~/SmartKeyboard/scripts/install-openbox-startup.sh
+bash ~/SmartKeyboard/scripts/launch-kiosk.sh
+```
+
+This appends a marked launcher to the existing Openbox startup file and backs up its previous contents. Existing commands are preserved. The app starts whenever `openbox-session` starts; the installer does not change how X starts at boot. To disable, remove only the three-line SmartKeyboard marked block from `~/.config/openbox/autostart`.
+
 The user-requested startup helpers are in `scripts`. They add a per-user desktop autostart entry; they do not modify existing services or configure desktop login. Copy both source folders after pulling:
 
 ```sh
