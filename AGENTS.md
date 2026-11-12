@@ -9,3 +9,5 @@
 - Do not modify EZ Signage services, display setup, or existing Chromium profiles.
 - Verify geometry remains identical across keyboard toggles and page/workspace switches. Verify no overflow at 1920 x 1080.
 - Do not present USB HID, dictation, script execution, or formatting controls as operational before they are implemented.
+- Macros are key combinations or sequences (optionally mixed with text), not a second Quick Text panel. Preserve legacy text-macro storage. Local previews must explicitly identify their target; OS shortcuts require a real HID bridge.
+- Keyboard hide/show must restore editor focus and the exact selection/caret range. Form editing must retain its own focus.

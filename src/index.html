@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Smart Keyboard</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Smart Keyboard</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script><script src="macros.js" defer></script></head>
 <body>
 <main>
   <header><div class="brand"><span aria-hidden="true">///</span><h1>SMART KEYBOARD</h1><em>TOUCH COMPOSER</em></div><div class="header-tools"><span class="badge">USB HID OFF</span><time id="clock"></time></div></header>
@@ -11,13 +11,13 @@
       <div class="editor-body"><aside class="tools" aria-label="Editor tools"><button id="select-all">Select</button><button id="copy-text">Copy</button><button id="clear">Clear</button></aside><label class="editor-label"><span class="sr-only">Your text</span><textarea id="editor" spellcheck="false" placeholder="Tap a phrase or show the keyboard…"></textarea></label></div>
       <footer><span id="status" role="status">Ready · Local text only</span><button id="toggle-keyboard" aria-controls="keyboard-panel" aria-expanded="false">⌨ Show keyboard</button></footer>
     </section>
-    <aside class="macro-panel panel"><div class="macro-heading"><h2>ϟ MACROS <small>(Text)</small></h2><button id="edit-macros" aria-expanded="false">✎ Edit</button></div><section id="macros" aria-label="Named text macros"></section><nav class="macro-pages" aria-label="Macro pages"><button id="macros-prev" aria-label="Previous macro page">◀</button><span id="macro-page"></span><button id="macros-next" aria-label="Next macro page">▶</button></nav></aside>
+    <aside class="macro-panel panel"><div class="macro-heading"><h2>ϟ MACROS <small>(Keys)</small></h2><button id="edit-macros" aria-expanded="false">✎ Edit</button></div><section id="macros" aria-label="Key sequence macros"></section><nav class="macro-pages" aria-label="Macro pages"><button id="macros-prev" aria-label="Previous macro page">◀</button><span id="macro-page"></span><button id="macros-next" aria-label="Next macro page">▶</button></nav></aside>
   </div>
   <section class="lower-panel panel" aria-label="Quick Text and keyboard">
     <section id="quick-panel" class="lower-layer"><div class="panel-heading"><h2>☷ QUICK TEXT</h2><span>Tap = insert · Hold = edit</span><button id="quick-prev" aria-label="Previous Quick Text page">◀</button><span id="quick-page"></span><button id="quick-next" aria-label="Next Quick Text page">▶</button><button id="quick-edit">✎ Edit phrases</button></div><div id="quick-buttons"></div></section>
     <section id="keyboard-panel" class="lower-layer" hidden><div class="panel-heading"><h2>⌨ TOUCH KEYBOARD</h2><span>HOLD BACKSPACE TO REPEAT</span><button id="hide-keyboard">Hide keyboard · Quick Text</button></div><section id="keyboard" aria-label="Virtual keyboard"></section></section>
   </section>
-  <form id="macro-form" hidden><h2>Edit named text macros</h2><p>Button labels and inserted text are separate. Saved in this browser.</p><div id="macro-fields"></div><div class="form-actions"><button type="button" id="add-macro">Add button</button><button type="submit">Save buttons</button><button type="button" id="cancel-macros">Cancel</button></div><p id="macro-message" role="status"></p></form>
+  <form id="macro-form" hidden><h2>Edit key sequence macros</h2><p>One action per line: KEY Ctrl+A, TEXT Hello, KEY Enter. Local editor preview only; Windows shortcuts require USB HID. Old text-button settings remain stored separately.</p><div id="macro-fields"></div><div class="form-actions"><button type="button" id="add-macro">Add button</button><button type="submit">Save buttons</button><button type="button" id="cancel-macros">Cancel</button></div><p id="macro-message" role="status"></p></form>
   <form id="quick-form" hidden><h2>Edit Quick Text</h2><label>Button name<input name="label" maxlength="60" required></label><label>Text to insert<textarea name="text" maxlength="5000" required></textarea></label><div class="form-actions"><button type="submit">Save phrase</button><button type="button" id="quick-cancel">Cancel</button></div><p id="quick-message" role="status"></p></form>
 </main>
 </body></html>
