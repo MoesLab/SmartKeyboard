@@ -127,3 +127,9 @@ bash ~/SmartKeyboard/scripts/install-desktop-startup.sh
 This is appropriate only if the Radxa runs a graphical desktop that processes XDG autostart. A custom `.xinitrc` kiosk session needs its own integration after inspecting that file. Automatic appearance after power-on also requires desktop autologin; verify the current setup first. See [Radxa automatic-login documentation](https://docs.radxa.com/en/cubie/a7z/system-config/auto-login).
 
 The stable new profile is `~/SmartKeyboard/kiosk-profile`; earlier profiles remain intact, including saved button settings. Startup logs are in `~/SmartKeyboard/logs/kiosk-startup.log`. Bluetooth's test driver is temporary and is not made persistent by these scripts.
+
+## Bluetooth driver persistence
+
+The verified test module was built at `/home/radxa/SmartKeyboard/bt-build-9Wo8Of/aic_btusb.ko` for kernel `5.15.147-14-a733`, with Android mode disabled. It exposed controller F4:AB:5C:E1:D6:80 and peripheral support through BlueZ. This confirms adapter availability, not HID keyboard functionality.
+
+`scripts/install-bluetooth-driver.sh` takes the tested module path, checks compatibility, and installs a separate kernel-specific copy with a [depmod module-priority override](https://man7.org/linux/man-pages/man5/depmod.d.5.html). It retains the package-managed driver and does not unload the active module. Verify selection and a Bluetooth-only reload on the actual Radxa before rebooting. `scripts/rollback-bluetooth-driver.sh` disables the custom copy for future loads without deleting the packaged driver. Read `scripts/README.md` for details. A kernel upgrade requires rebuilding and testing a matching module. A Bluetooth HID keyboard backend is still to be implemented.
