@@ -1,8 +1,8 @@
-# Bluetooth LE keyboard — hardware validation pending
+# Bluetooth LE keyboard — basic hardware operation confirmed
 
 The new backend exports a BLE HID keyboard (service 0x1812, appearance 0x03C1, report ID 1) through the existing BlueZ 5.55 GATT/advertising interfaces. It includes boot/report input, LED output, protocol mode, and HID control point. It registers a KeyboardDisplay pairing agent and restores the adapter's earlier pairable/discoverable settings when its two-minute pairing window closes. No package or driver changes are performed by this backend.
 
-Implementation references: BlueZ's official [GATT API](https://github.com/bluez/bluez/blob/5.55/doc/gatt-api.txt), [advertising API](https://github.com/bluez/bluez/blob/5.55/doc/advertising-api.txt), and [agent API](https://github.com/bluez/bluez/blob/5.55/doc/agent-api.txt). This is an original implementation; it has not yet been validated against this user's Windows host.
+Implementation references: BlueZ's official [GATT API](https://github.com/bluez/bluez/blob/5.55/doc/gatt-api.txt), [advertising API](https://github.com/bluez/bluez/blob/5.55/doc/advertising-api.txt), and [agent API](https://github.com/bluez/bluez/blob/5.55/doc/agent-api.txt). The user confirmed Bluetooth typing to the PC and Ctrl+A operating on Windows without altering the Radxa composer. The original tested rate was 15ms/report (~33 characters/second). The next-round default of 5ms/report (~100 characters/second) has not yet been hardware-tested.
 
 ## Install on Radxa
 
@@ -40,10 +40,10 @@ The virtual keyboard and Quick Text continue to edit locally. Only Send transmit
 ## Encoding and connection limits
 
 - US keyboard layout; 1–1000 input characters per Send and 1–100 shortcut actions per macro. Typographic curly quotes, dashes, ellipsis and nonbreaking spaces are normalized to US equivalents. Other unsupported Unicode is rejected before anything is queued. Non-US host layouts may type different symbols.
-- Eight-byte keyboard reports alternate presses and releases, paced at 15ms per report. Queue acceptance is not proof that the target app handled a keystroke.
+- Eight-byte keyboard reports alternate presses and releases, now paced at 5ms per report (~100 characters/second nominal). Actual speed depends on Bluetooth scheduling. Set `--report-interval-ms 15` to return to the hardware-proven original pace if the faster rate drops characters. The accepted range is 3–30ms. Queue acceptance is not proof that the target app handled a keystroke.
 - A single paired, connected host must subscribe to input notifications. Zero/multiple hosts, unsubscribed input, or suspended HID cause rejection. A disconnect or host change cancels queued reports and emits release reports where possible. Sends are serialized; there is no automatic resend after reconnect.
 - Pairing is never silently accepted. Requests outside an explicitly opened pairing window are rejected; approval happens on the touchscreen. Legacy PIN pairing is not supported.
-- No Bluetooth radio, advertising, bonding, power-loss, or Windows integration test has yet run on actual hardware for this backend.
+- Basic advertisement, pairing, text sending, and Ctrl+A were confirmed by the user on the actual Radxa and PC. Faster pacing, sustained long sends, reconnects and power-loss behavior still need target-device testing.
 
 ## Local bridge and saved settings
 
@@ -59,4 +59,4 @@ The GUI will continue to work locally; Bluetooth buttons will show offline. Exis
 
 ## Tests
 
-`python3 -m unittest discover -s backend -p 'test_*.py'` runs report encoding, hierarchy and bridge/state tests. D-Bus decorators are stubbed only in the local logic tests; they do not claim to validate a real BlueZ connection. Eleven tests passed on Windows, and browser checks passed against a simulated bridge. Shell syntax and Python syntax passed. Radxa service registration and Windows pairing are the next required validation.
+`python3 -m unittest discover -s backend -p 'test_*.py'` runs report encoding, hierarchy and bridge/state tests. D-Bus decorators are stubbed only in the local logic tests. Eleven local tests passed again after the faster pacing change; browser checks previously passed against a simulated bridge. The user separately confirmed real service registration, pairing, typing, and Ctrl+A. Next session must test faster pacing on hardware; local tests do not measure radio timing.

@@ -2,7 +2,7 @@
 
 Lightweight touchscreen prototype for the Radxa Cubie A7Z. Uses plain HTML, CSS, and JavaScript with no build step or downloaded libraries.
 
-**Bluetooth milestone:** the persistent Linux-mode driver is confirmed after reboot. A new BLE keyboard backend and GUI bridge are now implemented and locally tested; actual Radxa registration and Windows pairing remain to be tested. See [backend/README.md](backend/README.md) for installation and pairing. Earlier USB/offline-only descriptions below document the prototype history; the new Send and macro controls use Bluetooth when its service is available.
+**Bluetooth milestone:** GUI startup and the Linux-mode driver survive reboot. The user confirmed Bluetooth pairing, text delivery to the PC, and Ctrl+A. The next-round speed update targets ~100 characters/second instead of ~33; it is prepared in GitHub but still needs installation and hardware testing next session. Updating only `src` does not update the backend: rerun the Bluetooth keyboard installer after copying backend/scripts. See [backend/README.md](backend/README.md). Earlier USB/offline-only descriptions below document prototype history.
 
 ## On your Windows PC
 

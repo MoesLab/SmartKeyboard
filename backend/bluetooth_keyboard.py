@@ -222,7 +222,7 @@ class PairingAgent(dbus.service.Object):
         else: reply()
 
 class Controller:
-    def __init__(self,bus,adapter):
+    def __init__(self,bus,adapter,report_interval_ms=5):
         self.bus=bus;self.adapter=adapter;self.objects={};self.registered=False
         self.error='Starting';self.pair_until=0;self.pair_display=None;self.old_pairing=None
         self.protocol=1;self.suspended=False;self.queue=collections.deque();self.queue_target=None
@@ -233,7 +233,7 @@ class Controller:
         bus.add_signal_receiver(self.changed,bus_name='org.bluez',dbus_interface=PROPS,signal_name='PropertiesChanged',path_keyword='path')
         bus.add_signal_receiver(self.added,bus_name='org.bluez',dbus_interface=OM,signal_name='InterfacesAdded')
         bus.add_signal_receiver(self.removed,bus_name='org.bluez',dbus_interface=OM,signal_name='InterfacesRemoved')
-        GLib.timeout_add(15,self.tick)
+        GLib.timeout_add(report_interval_ms,self.tick)
         GLib.timeout_add_seconds(1,self.expire_pairing)
 
     def refresh_objects(self):
@@ -379,13 +379,16 @@ def bridge_handler(controller,token,port):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--app-home',required=True);parser.add_argument('--port',type=int,default=8765)
     parser.add_argument('--state-dir',default='/var/lib/smartkeyboard-bluetooth')
+    parser.add_argument('--report-interval-ms',type=int,default=5,help='Report pacing, 3–30ms; 5ms targets about 100 characters/second')
     args=parser.parse_args();home=Path(args.app_home).resolve()
+    if not 3<=args.report_interval_ms<=30: parser.error('--report-interval-ms must be between 3 and 30')
     logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus=dbus.SystemBus();objects=dbus.Interface(bus.get_object('org.bluez','/'),OM).GetManagedObjects()
     adapters=[str(p) for p,v in objects.items() if 'org.bluez.GattManager1' in v and 'org.bluez.LEAdvertisingManager1' in v]
     if len(adapters)!=1: raise RuntimeError('Exactly one GATT/advertising adapter is required')
-    controller=Controller(bus,adapters[0]);controller.props.Set(ADAPTER,'Powered',dbus.Boolean(True))
+    controller=Controller(bus,adapters[0],args.report_interval_ms);controller.props.Set(ADAPTER,'Powered',dbus.Boolean(True))
+    logging.info('Keyboard pacing: %dms/report; target %.1f characters/second',args.report_interval_ms,1000/(2*args.report_interval_ms))
     application=Application(bus,controller);advertisement=Advertisement(bus)
     manager=dbus.Interface(bus.get_object('org.bluez','/org/bluez'),'org.bluez.AgentManager1')
     manager.RegisterAgent(controller.agent.get_path(),'KeyboardDisplay')
