@@ -91,7 +91,7 @@ async function pollBluetooth(){
   finally{pollingBluetooth=false;renderBluetooth();}
 }
 function openBluetooth(){
-  if(finishConfirmation||window.smartKeyboardSelection?.isOpen()||window.smartKeyboardSettings?.isOpen())return;
+  if(finishConfirmation||window.smartKeyboardSelection?.isOpen()||window.smartKeyboardSettings?.isOpen()||window.smartKeyboardScreen?.isAsleep())return;
   bluetoothPanelOpen=true;btPanel.hidden=false;
   for(const selector of ['header','.cockpit','.lower-panel'])document.querySelector(selector).inert=true;
   renderBluetooth();document.querySelector('#bluetooth-close').focus();pollBluetooth();

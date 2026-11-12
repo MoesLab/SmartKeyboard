@@ -63,12 +63,22 @@ toneButton.addEventListener('click',()=>{
   if(toneEnabled)keyTone(); focusEditor();
 });
 updateToneButton();document.querySelector('.header-tools').prepend(toneButton);
+// Some touch drivers send a zero-detail compatibility click after pointerdown.
+// Track each pointer activation so that fallback never adds a second tone.
+const tonePointerPresses=new WeakMap();
 document.addEventListener('pointerdown',event=>{
   const button=event.target.closest('button');
-  if(button && !button.disabled && button!==toneButton)keyTone();
+  if(button && !button.disabled && button!==toneButton){tonePointerPresses.set(button,performance.now());keyTone();}
+},true);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Enter'||event.key===' '){const button=event.target.closest('button');if(button)tonePointerPresses.delete(button);}
 },true);
 document.addEventListener('click',event=>{
-  if(event.detail===0 && event.target.closest('button') && event.target.closest('button')!==toneButton)keyTone();
+  const button=event.target.closest('button');
+  if(!button||button.disabled||button===toneButton)return;
+  const hadPointer=tonePointerPresses.has(button)&&performance.now()-tonePointerPresses.get(button)<10000;
+  tonePointerPresses.delete(button);
+  if(event.detail===0&&!hadPointer)keyTone();
 },true);
 
 let fontSize=27;

@@ -142,3 +142,36 @@ button:active::after,button[aria-pressed="true"]::after { background:linear-grad
 #settings-message { color:var(--yellow); font-size:20px; }
 #bluetooth-panel .dialog-actions { flex-wrap:wrap; }
 #bluetooth-panel .dialog-actions button { width:148px; font-size:20px; }
+
+/* Appearance changes never change the fixed layout or composer typography. */
+#settings-panel .neon-dialog { width:920px; max-height:1020px; overflow:auto; }
+#settings-panel .neon-dialog p { font-size:19px; margin:12px 0; }
+#settings-panel .dialog-actions button { width:220px; height:56px; font-size:20px; line-height:24px; white-space:nowrap; padding:8px 14px; }
+.appearance-row { display:flex; gap:12px; align-items:center; margin:14px 0; }
+.appearance-row>span { width:140px; flex-shrink:0; font-size:20px; }
+.appearance-row button { flex:1; height:52px; font-size:19px; padding:4px; }
+#screen-saver { position:fixed; inset:0; z-index:1000; background:#000; color:#303030; display:flex; align-items:center; justify-content:center; font:18px 'Segoe UI',sans-serif; cursor:pointer; touch-action:manipulation; user-select:none; }
+:root[data-theme="industrial"] { --cyan:#ffbd43; --pink:#a77a37; --yellow:#ffd457; color:#f1eee6; background:#080909; }
+:root[data-theme="glass"] { --cyan:#46d9ff; --pink:#3195c7; --yellow:#79dcff; color:#e4f7ff; background:#020b15; }
+html[data-theme="industrial"] main { background:linear-gradient(120deg,#292b29,#0d1010 55%,#161a1a); }
+html[data-theme="glass"] main { background:radial-gradient(ellipse at 45% 0,#125677,transparent 70%),#03111f; }
+html[data-theme="industrial"] .panel { background:linear-gradient(145deg,#272c2d,#0b1012); box-shadow:0 0 5px #cc982a50,inset 0 1px 0 #d8c5a455; }
+html[data-theme="glass"] .panel { background:linear-gradient(145deg,#0b3047ee,#031322ee); box-shadow:0 0 6px #20b8f550,inset 0 1px 0 #a4e8ff55; }
+html[data-theme="industrial"] button::after { background:linear-gradient(135deg,#384040,#101719 60%,#283033); }
+html[data-theme="glass"] button::after { background:linear-gradient(135deg,#154963,#041b30 60%,#103e56); }
+html[data-theme="industrial"] button:active::after,html[data-theme="industrial"] button[aria-pressed="true"]::after { background:linear-gradient(135deg,#b57613,#56370b); }
+html[data-theme="glass"] button:active::after,html[data-theme="glass"] button[aria-pressed="true"]::after { background:linear-gradient(135deg,#078bc3,#07507b); }
+html[data-theme="industrial"] button { filter:drop-shadow(0 0 2px #e8b54150); }
+html[data-theme="glass"] button { filter:drop-shadow(0 0 2px #37c9ff60); }
+html[data-theme="industrial"] .brand>span { background:repeating-linear-gradient(90deg,#ffb52d 0 20px,transparent 20px 28px); filter:drop-shadow(0 0 3px #ffb52d60); }
+html[data-theme="glass"] .brand>span { background:repeating-linear-gradient(90deg,#35cbff 0 20px,transparent 20px 28px); filter:drop-shadow(0 0 3px #35cbff60); }
+html:not([data-theme="neon"]) .brand em,html:not([data-theme="neon"]) .pages h2 { color:var(--cyan); }
+html:not([data-theme="neon"]) h1 { text-shadow:0 0 6px var(--cyan); }
+html[data-theme="industrial"] #editor,html[data-theme="industrial"] #selection-preview { background:#121b1e; }
+html[data-theme="glass"] #editor,html[data-theme="glass"] #selection-preview { background:#041c30; }
+html[data-theme="industrial"] #keyboard-panel { background:#11191b; }
+html[data-theme="glass"] #keyboard-panel { background:#041b2c; }
+html[data-theme="industrial"] .neon-dialog { background:linear-gradient(145deg,#293034,#0b1217); box-shadow:0 0 18px #cc982a60; }
+html[data-theme="glass"] .neon-dialog { background:linear-gradient(145deg,#123d57,#041526); box-shadow:0 0 18px #20b8f560; }
+html[data-theme="glass"] #macros button::after { background:linear-gradient(135deg,#123b52,#031724 60%,#0b2c3f); }
+html[data-theme="glass"] #macros button small,html[data-theme="glass"] .macro-pages span { color:#a9deef; }

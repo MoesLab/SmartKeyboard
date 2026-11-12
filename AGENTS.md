@@ -31,3 +31,5 @@
 
 - Reliability controls: preflight unsupported characters with exact location and explicit selection action; never strip or send unsupported text silently. Track backend send IDs/states, and distinguish emitted reports from target-app acknowledgement. Disconnects cancel queued work; never automatically resend.
 - Settings backup uses a strict whitelist of browser-local settings and schema validation. Never export bridge tokens, BlueZ pairings or credentials. Import requires themed confirmation and a before-restore download; restore only known keys, roll back stored values on quota failure, and reload. Preserve editor dimensions and approved fonts.
+
+- Appearance: Neon Cyberpunk, Industrial AV and Modern Glass are color/surface changes only. Persist appearance in whitelisted backups. App sleep is a black touch-to-wake overlay, not OS suspend or monitor backlight control; preserve caret, draft, Bluetooth and all geometry. Optional idle timer defaults off. Never sleep over a send or pairing request.

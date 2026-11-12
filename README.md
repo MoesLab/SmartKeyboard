@@ -159,3 +159,6 @@ Tap Select… beside the composer. Tap a numbered line to select it; tap it agai
 
 
 The keyboard header now offers English, فارسی, and Symbols. Farsi is a local character layer with automatic text direction; Shift+Space inserts a zero-width non-joiner. It does not switch the Windows input language. Current Bluetooth Send rejects Farsi Unicode instead of silently sending incorrect text; host-layout-aware Farsi transmission remains separate work. ASCII Symbols work with the existing US-layout sender.
+
+### Themes and screen sleep
+Settings offers Neon Cyberpunk, Industrial AV and Modern Glass without changing geometry. Interface brightness has 35/65/100% presets (not monitor backlight control). Sleep now, or an optional 1/5/15-minute idle timer, displays a black touch-to-wake overlay. Idle sleep defaults off. One touch wakes without activating an underlying button; the draft and caret are restored. Bluetooth and Linux remain running. Appearance is included in JSON backups.

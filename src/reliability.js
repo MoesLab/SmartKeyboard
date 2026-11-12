@@ -49,7 +49,7 @@ window.smartKeyboardTransport.sendText=checkedSendText;
 setInterval(refreshSendFeedback,250);refreshSendFeedback();
 
 const backupKeys=new Set([
-  'smartKeyboard.sharedDraft.v2','smartKeyboard.quickText.v2','smartKeyboard.pageKeyMacros.v2',
+  'smartKeyboard.appearance.v1','smartKeyboard.sharedDraft.v2','smartKeyboard.quickText.v2','smartKeyboard.pageKeyMacros.v2',
   'smartKeyboard.composerSize','smartKeyboard.keyTone','smartKeyboard.keyboardLanguage',
   'smartKeyboard.drafts.v1','smartKeyboard.quickText.v1','smartKeyboard.textMacros.v1','smartKeyboard.keyMacros.v1'
 ]);
@@ -91,7 +91,8 @@ function validateBackup(backup){
     else if(key==='smartKeyboard.keyboardLanguage')valid=['en','fa','symbols'].includes(value);
     else{
       let data;try{data=JSON.parse(value);}catch{throw new Error('Invalid stored data for '+key);}
-      if(key==='smartKeyboard.quickText.v2')valid=Array.isArray(data)&&data.length===5&&data.every(page=>Array.isArray(page)&&page.length>=48&&page.length<=960&&(page.length===60||page.length%48===0)&&page.every(validPhrase));
+      if(key==='smartKeyboard.appearance.v1')valid=data&&['neon','industrial','glass'].includes(data.theme)&&['35','65','100'].includes(data.brightness)&&['0','60','300','900'].includes(data.idle);
+      else if(key==='smartKeyboard.quickText.v2')valid=Array.isArray(data)&&data.length===5&&data.every(page=>Array.isArray(page)&&page.length>=48&&page.length<=960&&(page.length===60||page.length%48===0)&&page.every(validPhrase));
       else if(key==='smartKeyboard.pageKeyMacros.v2')valid=Array.isArray(data)&&data.length===5&&data.every(page=>Array.isArray(page)&&page.length>0&&page.length<=300&&page.every(validMacro));
       else if(key==='smartKeyboard.quickText.v1')valid=Array.isArray(data)&&data.length===5&&data.every(page=>Array.isArray(page)&&page.length===60&&page.every(validPhrase));
       else if(key==='smartKeyboard.drafts.v1')valid=Array.isArray(data)&&data.length===5&&data.every(draft=>typeof draft==='string'&&draft.length<=100000);
