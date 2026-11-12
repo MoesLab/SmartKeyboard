@@ -104,3 +104,17 @@ cp -r ~/SmartKeyboard-source/src ~/SmartKeyboard/
 ```
 
 Run the copy only if the clone or pull succeeds. Refresh the existing Smart Keyboard page to load the updated files. The kiosk URL remains `file:///home/radxa/SmartKeyboard/src/index.html`. These commands do not change EZ Signage or install a startup service.
+
+## Desktop startup
+
+The user-requested startup helpers are in `scripts`. They add a per-user desktop autostart entry; they do not modify existing services or configure desktop login. Copy both source folders after pulling:
+
+```sh
+cp -r ~/SmartKeyboard-source/src ~/SmartKeyboard/
+cp -r ~/SmartKeyboard-source/scripts ~/SmartKeyboard/
+bash ~/SmartKeyboard/scripts/install-desktop-startup.sh
+```
+
+This is appropriate only if the Radxa runs a graphical desktop that processes XDG autostart. A custom `.xinitrc` kiosk session needs its own integration after inspecting that file. Automatic appearance after power-on also requires desktop autologin; verify the current setup first. See [Radxa automatic-login documentation](https://docs.radxa.com/en/cubie/a7z/system-config/auto-login).
+
+The stable new profile is `~/SmartKeyboard/kiosk-profile`; earlier profiles remain intact, including saved button settings. Startup logs are in `~/SmartKeyboard/logs/kiosk-startup.log`. Bluetooth's test driver is temporary and is not made persistent by these scripts.

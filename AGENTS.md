@@ -7,6 +7,7 @@
 - Page and workspace switching must preserve control dimensions and positions. Use fixed slots and explicit paging.
 - Preserve existing saved named macros and both reference images.
 - Do not modify EZ Signage services, display setup, or existing Chromium profiles.
+- Bluetooth HID is the user's preferred host connection. USB HID is no longer the primary transport plan. No Bluetooth keyboard backend is implemented yet: do not claim pairing, Send, or macros are functional until tested with the actual Radxa and PC.
 - Verify geometry remains identical across keyboard toggles and page/workspace switches. Verify no overflow at 1920 x 1080.
 - Do not present USB HID, dictation, script execution, or formatting controls as operational before they are implemented.
 - Macros are key combinations or sequences (optionally mixed with text), not a second Quick Text panel. Preserve legacy text-macro storage. Local previews must explicitly identify their target; OS shortcuts require a real HID bridge.

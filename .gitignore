@@ -6,3 +6,6 @@ chromium-profile/
 touch-test/
 releases/
 work/
+kiosk-profile/
+logs/
+bt-build-*/
