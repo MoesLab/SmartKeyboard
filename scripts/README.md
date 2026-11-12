@@ -1,5 +1,7 @@
 # Scripts
 
+`diagnose-gui.py` launches an isolated diagnostic browser with a random loopback DevTools port, reloads the real app while collecting JavaScript errors, captures layout/viewport state and a screenshot, then closes only that diagnostic process. It uses Python's standard library. Results: `~/SmartKeyboard/logs/gui-diagnostic.json`, `gui-diagnostic.png`, and `gui-diagnostic-browser.log`. No browser profiles are deleted or modified. The diagnostic browser is expected to close after capture. Run `python3 ~/SmartKeyboard/scripts/diagnose-gui.py` from MobaXterm. Tested end-to-end with a local Chromium-family browser; the Radxa run supplies actual target-browser evidence.
+
 `restart-kiosk.sh` recovers a blank Smart Keyboard window by gracefully stopping only main Chromium processes belonging to the current user whose command line contains the exact `~/SmartKeyboard/kiosk-profile` argument, then relaunching the same profile. It preserves saved browser data and does not target test profiles or EZ Signage. It refuses to force-kill a process that does not exit within twelve seconds. Run without sudo.
 
 ## Bluetooth keyboard service
