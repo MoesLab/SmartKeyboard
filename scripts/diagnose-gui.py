@@ -85,7 +85,7 @@ def main():
     command=[browser,'--user-data-dir='+str(profile),'--no-first-run','--disable-gpu','--remote-debugging-port=0','--kiosk']
     if args.headless:command.append('--headless=new')
     command.append(entry.as_uri())
-    environment=os.environ.copy();environment.setdefault('DISPLAY',':0');environment.setdefault('XAUTHORITY',str(Path.home()/'.Xauthority'))
+    environment=os.environ.copy();environment['DISPLAY']=':0';environment['XAUTHORITY']=str(Path.home()/'.Xauthority')
     with (logdir/'gui-diagnostic-browser.log').open('w') as logfile:
         process=subprocess.Popen(command,env=environment,stdout=logfile,stderr=subprocess.STDOUT)
         debugger=None
@@ -121,6 +121,7 @@ def main():
             result=debugger.call('Runtime.evaluate',{'expression':expression,'returnByValue':True})
             if 'exceptionDetails' in result:raise RuntimeError(str(result['exceptionDetails']))
             report=json.loads(result['result']['value'])
+            report['targetDisplay']=environment['DISPLAY']
             (logdir/'gui-diagnostic.json').write_text(json.dumps(report,indent=2))
             screenshot=debugger.call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
             (logdir/'gui-diagnostic.png').write_bytes(base64.b64decode(screenshot['data']))

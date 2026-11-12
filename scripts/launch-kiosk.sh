@@ -13,8 +13,11 @@ fi
 
 # Keep this project separate from all existing Chromium profiles and EZ Signage.
 profile="$app_home/kiosk-profile"
-export DISPLAY="${DISPLAY:-:0}"
-export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+# MobaXterm can export a forwarded DISPLAY such as localhost:10.0.
+# This launcher always targets the already-verified physical touchscreen.
+export DISPLAY=:0
+export XAUTHORITY="$HOME/.Xauthority"
+printf 'Target display: %s; authority: %s\n' "$DISPLAY" "$XAUTHORITY"
 browser=$(command -v chromium || command -v chromium-browser || true)
 if [ -z "$browser" ]; then echo 'Chromium is not installed.'; exit 1; fi
 

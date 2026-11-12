@@ -7,6 +7,7 @@
 - Page and workspace switching must preserve control dimensions and positions. Use fixed slots and explicit paging.
 - Preserve existing saved named macros and both reference images.
 - Do not modify EZ Signage services, display setup, or existing Chromium profiles.
+- Launch GUI and diagnostics on the verified physical `DISPLAY=:0` with `$HOME/.Xauthority`. Never inherit MobaXterm's forwarded DISPLAY for touchscreen operations.
 - Bluetooth HID is the user's preferred host connection. USB HID is no longer the primary transport plan. The new BlueZ GATT backend is implemented and locally tested, but not yet hardware-validated. Do not claim successful pairing or delivery until tested with the actual Radxa and PC. See backend/README.md.
 - Verify geometry remains identical across keyboard toggles and page/workspace switches. Verify no overflow at 1920 x 1080.
 - Do not present USB HID, dictation, script execution, or formatting controls as operational before they are implemented.
