@@ -27,7 +27,7 @@ try {
 }catch{/* Preserve old macro storage, including its retired local previews. */}
 let keyMacroPage=0;
 let programmingMacros=false;
-function captureMacro(index) {
+async function captureMacro(index) {
   const text=composerCapture();
   const [first,...rest]=text.split('\n');
   const label=first.trim();
@@ -36,8 +36,9 @@ function captureMacro(index) {
     if(!label||label.length>80||!rest.length)throw new Error('Type the name on line 1 and shortcut(s) below it, select that block, then hold a macro. Example: Copy followed by Ctrl+C on the next line.');
     shortcuts=parseMacro(rest.join('\n'));
   }catch(error){status.textContent=error.message;focusEditor();return;}
-  if(!window.confirm(`Save macro on ${workspaceNames[activeWorkspace]}?\n\n${label}\n${shortcuts.join(' → ')}`)){focusEditor();return;}
-  pageMacros[activeWorkspace][index]={label,sequence:shortcuts.join('\n')};
+  const targetWorkspace=activeWorkspace;
+  if(!await confirmSave(`Save macro on ${workspaceNames[targetWorkspace]}?\n\n${label}\n${shortcuts.join(' → ')}`)){focusEditor();return;}
+  pageMacros[targetWorkspace][index]={label,sequence:shortcuts.join('\n')};
   try{localStorage.setItem(keyMacroStorage,JSON.stringify(pageMacros));status.textContent='Macro name and shortcuts saved';}
   catch{status.textContent='Macro saved for this visit only; storage unavailable';}
   programmingMacros=false;renderKeyMacros();focusEditor();

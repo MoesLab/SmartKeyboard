@@ -122,12 +122,11 @@ const reloadButton = document.createElement('button');
 reloadButton.textContent = 'Reload';
 reloadButton.className = 'reload-button';
 reloadButton.addEventListener('click', () => {
-  if (editor.value && !window.confirm('Reload the interface? Unsaved editor text will be cleared.')) return;
+  saveDraft();
   window.location.reload();
 });
 document.querySelector('.header-tools').prepend(reloadButton);
 document.querySelector('#clear').addEventListener('click', () => {
-  if (editor.value && !window.confirm('Clear all text in this page?')) return;
   editor.value = ''; selection = [0, 0]; status.textContent = 'Text cleared'; editor.focus();
 });
 render();
@@ -157,7 +156,7 @@ let quickTexts = workspaceNames.map(() => [
   'A restart may be required. ', 'I recommend the following steps. ', 'Please proceed when ready. ',
   'I look forward to your reply. ', 'Let’s keep in touch. ', 'Have a great day. ', 'Best regards, ', 'Sincerely, ', 'Mo Azizi']
   .map(text => ({ label: text.trim(), text })),
-  ...Array.from({length:30}, () => ({label:'',text:''}))
+  ...Array.from({length:66}, () => ({label:'',text:''}))
 ]);
 const pagePhrases = [null,
   ['pwd','ls -la','cd ~','uname -a','df -h','free -h','ip addr','git status','git pull --ff-only'],
@@ -165,7 +164,7 @@ const pagePhrases = [null,
   ['Hello, ','Thank you for your email. ','Please find the attached file. ','I look forward to hearing from you. ','Best regards, '],
   ['Hi! ','I will call you later. ','On my way. ','Thank you! ','See you soon. ']];
 pagePhrases.forEach((phrases,index)=>{
-  if (phrases) quickTexts[index]=Array.from({length:60},(_,i)=>({label:phrases[i]||'',text:phrases[i]||''}));
+  if (phrases) quickTexts[index]=Array.from({length:96},(_,i)=>({label:phrases[i]||'',text:phrases[i]||''}));
 });
 try {
   const savedDrafts = JSON.parse(localStorage.getItem('smartKeyboard.drafts.v1'));
@@ -177,8 +176,9 @@ try {
     }
   }
   const savedQuick = JSON.parse(localStorage.getItem('smartKeyboard.quickText.v2'));
-  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && p.length === 60 && p.every(q => q && typeof q.label === 'string' && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
+  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && [60,96].includes(p.length) && p.every(q => q && typeof q.label === 'string' && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
 } catch { /* Keep defaults when storage is unavailable. */ }
+quickTexts = quickTexts.map(page => [...page,...Array.from({length:Math.max(0,96-page.length)},()=>({label:'',text:''}))]);
 function saveDraft() {
   sharedDraft = editor.value;
   try { localStorage.setItem('smartKeyboard.sharedDraft.v2', sharedDraft); }
@@ -187,12 +187,13 @@ function saveDraft() {
 editor.addEventListener('input', saveDraft);
 document.querySelector('#clear').addEventListener('click', saveDraft);
 
-function editQuick(index) {
+async function editQuick(index) {
   const text = composerCapture();
   if (!text.trim()) { status.textContent = 'Type or select text in the editor, then hold a Quick Text button.'; focusEditor(); return; }
   if (text.length > 5000) { status.textContent = 'Select up to 5000 characters to save as Quick Text.'; focusEditor(); return; }
-  if (!window.confirm(`Save this as the button label and text on ${workspaceNames[activeWorkspace]}?\n\n${text.slice(0,300)}${text.length>300?'…':''}`)) { focusEditor(); return; }
-  quickTexts[activeWorkspace][index] = {label:text,text};
+  const targetWorkspace = activeWorkspace;
+  if (!await confirmSave(`Save this as the button label and text on ${workspaceNames[targetWorkspace]}?\n\n${text.slice(0,300)}${text.length>300?'…':''}`)) { focusEditor(); return; }
+  quickTexts[targetWorkspace][index] = {label:text,text};
   try { localStorage.setItem('smartKeyboard.quickText.v2',JSON.stringify(quickTexts)); status.textContent = 'Quick Text label and text saved'; }
   catch { status.textContent = 'Updated for this visit only; browser storage unavailable'; }
   renderQuick(); focusEditor();
@@ -201,8 +202,8 @@ function composerCapture() { return selection[0] !== selection[1] ? editor.value
 function renderQuick() {
   const container = document.querySelector('#quick-buttons');
   container.replaceChildren();
-  quickTexts[activeWorkspace].slice(quickPage * 30, quickPage * 30 + 30).forEach((phrase, offset) => {
-    const index = quickPage * 30 + offset;
+  quickTexts[activeWorkspace].slice(quickPage * 48, quickPage * 48 + 48).forEach((phrase, offset) => {
+    const index = quickPage * 48 + offset;
     const button = document.createElement('button');
     button.type = 'button'; button.textContent = phrase.label || '＋ Set phrase'; button.title = phrase.text;
     let timer; let held = false;
