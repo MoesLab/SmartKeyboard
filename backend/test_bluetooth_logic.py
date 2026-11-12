@@ -44,6 +44,31 @@ class BluetoothLogic(unittest.TestCase):
         item.tick();self.assertEqual(len(item.queue),0)
         self.assertEqual(item.input.emit.call_args.args[0],keyboard.RELEASE)
 
+    def test_delivery_progress_and_no_replay_after_disconnect(self):
+        item=controller();result=item.enqueue(keyboard.encode_text('ab'))
+        self.assertEqual(result['delivery']['state'],'queued')
+        item.tick();item.tick()
+        self.assertEqual(item.delivery['actionsSent'],1)
+        item.objects[item.adapter+'/dev_PC'][keyboard.DEVICE]['Connected']=False
+        item.tick();self.assertEqual(item.delivery['state'],'stopped')
+        item.objects[item.adapter+'/dev_PC'][keyboard.DEVICE]['Connected']=True
+        count=item.input.emit.call_count;item.tick()
+        self.assertEqual(item.input.emit.call_count,count)
+        self.assertFalse(item.queue)
+
+    def test_delivery_completion_and_explicit_cancel(self):
+        item=controller();item.enqueue(keyboard.encode_text('a'))
+        item.tick();item.tick();self.assertEqual(item.delivery['state'],'sent')
+        item.enqueue(keyboard.encode_text('ab'))
+        result=item.handle('/api/cancel-send',{})
+        self.assertEqual(result['delivery']['state'],'cancelled');self.assertFalse(item.queue)
+
+    def test_unsupported_character_has_location_without_queue(self):
+        item=controller()
+        with self.assertRaisesRegex(ValueError,'line 2, column 1'):
+            item.handle('/api/send',{'text':'Hello'+chr(10)+'ی'})
+        self.assertFalse(item.queue)
+
     def test_zero_or_multiple_hosts_cannot_send(self):
         for kind in ('unpaired','multiple','unsubscribed'):
             item=controller()

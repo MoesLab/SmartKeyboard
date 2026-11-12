@@ -60,3 +60,20 @@ The GUI will continue to work locally; Bluetooth buttons will show offline. Exis
 ## Tests
 
 `python3 -m unittest discover -s backend -p 'test_*.py'` runs report encoding, hierarchy and bridge/state tests. D-Bus decorators are stubbed only in the local logic tests. Eleven local tests passed again after the faster pacing change; browser checks previously passed against a simulated bridge. The user separately confirmed real service registration, pairing, typing, and Ctrl+A. Next session must test faster pacing on hardware; local tests do not measure radio timing.
+
+
+### Send reliability and backups
+
+SEND validates the complete draft before queuing anything. Unsupported characters
+show a line and column; the touchscreen can select the offending character.
+Farsi remains local composition only. Typographic quotes and dashes are normalized.
+Delivery status distinguishes queued, sending, sent reports and interrupted output.
+Sent reports do not prove that the focused PC application accepted the text.
+Bluetooth settings provide Refresh and Stop send. A disconnect clears the queue;
+reconnection never automatically resends it. Check the PC before retrying.
+
+Settings exports a JSON backup of the draft, named macros, Quick Text and preferences.
+It excludes bridge credentials and Bluetooth pairing keys. Copy the downloaded file
+from Radxa to the PC using MobaXterm. Restore validates the file, requests confirmation,
+downloads a before-restore backup, replaces known settings and reloads the interface.
+These files contain your saved text; keep them somewhere appropriate.

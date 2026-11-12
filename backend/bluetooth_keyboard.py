@@ -227,6 +227,7 @@ class Controller:
         self.error='Starting';self.pair_until=0;self.pair_display=None;self.old_pairing=None
         self.protocol=1;self.suspended=False;self.queue=collections.deque();self.queue_target=None
         self.shutdown_pending=False;self.shutdown_error=''
+        self.delivery={'id':'','state':'idle','totalReports':0,'remainingReports':0,'actionsSent':0,'host':'','message':'No send yet'}
         self.last_message='Bluetooth keyboard starting';self.input=None;self.boot_input=None
         self.props=dbus.Interface(bus.get_object('org.bluez',adapter),PROPS)
         self.agent=PairingAgent(bus,self)
@@ -261,11 +262,22 @@ class Controller:
     def ready(self):
         return self.registered and not getattr(self,'shutdown_pending',False) and len(self.hosts())==1 and self.active_report().notifying and not self.suspended
 
+    def connection_status(self):
+        if not self.registered:return 'offline'
+        if getattr(self,'shutdown_pending',False):return 'shutting-down'
+        hosts=self.hosts()
+        if not hosts:return 'waiting'
+        if len(hosts)>1:return 'multiple'
+        if self.suspended:return 'suspended'
+        if not self.active_report().notifying:return 'subscribing'
+        return 'ready'
+
     def snapshot(self):
         hosts=self.hosts()
         return {'registered':self.registered,'ready':bool(self.ready()),'error':self.error,
                 'host':str(hosts[0][1].get('Alias','Paired PC')) if len(hosts)==1 else '',
-                'connectedHosts':len(hosts),'queuedReports':len(self.queue),
+                'connectedHosts':len(hosts),'queuedReports':len(self.queue),'connection':self.connection_status(),
+                'delivery':dict(getattr(self,'delivery',{})),
                 'pairingSeconds':max(0,int(self.pair_until-time.monotonic())),
                 'pairing':self.agent.pending,'displayPasskey':self.pair_display,'message':self.last_message,
                 'shutdownPending':getattr(self,'shutdown_pending',False),'shutdownError':getattr(self,'shutdown_error','')}
@@ -279,20 +291,43 @@ class Controller:
         self.suspended=value==b'\0'
 
     def enqueue(self,reports):
-        if not self.ready(): raise ValueError('No single paired PC is subscribed to keyboard input. Nothing sent.')
-        if self.queue: raise ValueError('A send is in progress; wait until it finishes.')
+        if not self.ready():
+            raise ValueError('PC keyboard connection is not ready ('+self.connection_status()+'). Draft kept; nothing sent. Open Bluetooth and refresh the connection.')
+        if self.queue:raise ValueError('A send is in progress; wait or use Stop send in Bluetooth settings.')
         self.queue_target=self.hosts()[0][0];self.queue.extend(reports)
-        self.last_message='Keystrokes queued for '+str(self.hosts()[0][1].get('Alias','PC'))
-        return {'ok':True,'message':self.last_message}
+        host=str(self.hosts()[0][1].get('Alias','PC'))
+        self.delivery={'id':secrets.token_hex(8),'state':'queued','totalReports':len(reports),'remainingReports':len(reports),'actionsSent':0,'host':host,'message':'Keystrokes queued for '+host}
+        self.last_message=self.delivery['message']
+        return {'ok':True,'message':self.last_message,'delivery':dict(self.delivery)}
+
+    def stop_delivery(self,message,state='stopped'):
+        self.queue.clear()
+        for characteristic in (self.input,self.boot_input):
+            try:characteristic.emit(RELEASE)
+            except Exception:logging.exception('Could not emit key release after send stopped')
+        if getattr(self,'delivery',None):
+            self.delivery.update(state=state,remainingReports=0,message=message)
+        self.last_message=message
 
     def tick(self):
         if self.queue:
             if not self.ready() or self.hosts()[0][0]!=self.queue_target:
-                self.queue.clear();self.input.emit(RELEASE);self.boot_input.emit(RELEASE)
-                self.last_message='Send stopped: Bluetooth connection changed'
+                self.stop_delivery('Send interrupted by Bluetooth change. Draft kept; check the PC before resending.')
             else:
-                self.active_report().emit(self.queue.popleft())
-                if not self.queue: self.last_message='Keyboard reports sent over Bluetooth'
+                try:
+                    self.active_report().emit(self.queue.popleft())
+                    self.delivery['remainingReports']=len(self.queue)
+                    self.delivery['actionsSent']=(self.delivery['totalReports']-len(self.queue))//2
+                    if self.queue:
+                        self.delivery['state']='sending'
+                        self.delivery['message']='Sending '+str(self.delivery['actionsSent'])+'/'+str(self.delivery['totalReports']//2)+' key actions to '+self.delivery['host']
+                    else:
+                        self.delivery['state']='sent'
+                        self.delivery['message']='Reports sent to '+self.delivery['host']+'. Check the target PC app.'
+                    self.last_message=self.delivery['message']
+                except Exception:
+                    logging.exception('Bluetooth report emission failed')
+                    self.stop_delivery('Send failed during Bluetooth output. Check the PC before resending.','failed')
         return True
 
     def open_pairing(self):
@@ -347,6 +382,11 @@ class Controller:
         if route=='/api/status': return self.snapshot()
         if getattr(self,'shutdown_pending',False): raise ValueError('Shutdown is already in progress.')
         if route=='/api/shutdown': return self.request_shutdown(data)
+        if route=='/api/refresh':
+            self.refresh_objects();return self.snapshot()
+        if route=='/api/cancel-send':
+            if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
+            return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
         if route=='/api/pair': return self.open_pairing()
         if route=='/api/send': return self.enqueue(encode_text(data.get('text')))
         if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')))

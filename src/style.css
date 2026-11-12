@@ -136,3 +136,9 @@ button:active::after,button[aria-pressed="true"]::after { background:linear-grad
 .keyboard-languages button { width:116px; height:44px; padding:4px; font-size:20px; }
 #keyboard-note { font-size:17px; }
 #keyboard[data-language="fa"] .row button:not(.wide):not(.space) { font-family:'Segoe UI','Noto Sans Arabic','DejaVu Sans',sans-serif; font-size:31px; }
+
+#settings-open { width:114px; height:44px; padding:4px; font-size:18px; }
+#send-text[data-invalid="true"] { --edge:#ffbb42; color:#ffe2a0; font-size:24px; }
+#settings-message { color:var(--yellow); font-size:20px; }
+#bluetooth-panel .dialog-actions { flex-wrap:wrap; }
+#bluetooth-panel .dialog-actions button { width:148px; font-size:20px; }

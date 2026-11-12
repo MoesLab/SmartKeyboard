@@ -33,9 +33,14 @@ def encode_text(text):
     if not isinstance(text,str) or not text or len(text)>1000:
         raise ValueError('Send 1–1000 characters at a time.')
     normalized=text.replace('\r\n','\n').replace('\r','\n').translate(TYPOGRAPHIC)
-    unsupported=next((c for c in normalized if c not in ASCII),None)
-    if unsupported is not None:
-        raise ValueError('US keyboard layout: unsupported character '+repr(unsupported)+'. Nothing queued.')
+    line=1;column=1
+    for character in text:
+        mapped=character.translate(TYPOGRAPHIC).replace(chr(13),chr(10))
+        if any(c not in ASCII for c in mapped):
+            point='U+%04X'%ord(character)
+            raise ValueError('Unsupported '+repr(character)+' ('+point+') at line '+str(line)+', column '+str(column)+'. Nothing sent. Current Bluetooth encoding supports US-layout text only.')
+        if character==chr(10):line+=1;column=1
+        elif character!=chr(13):column+=1
     return [packet for c in normalized for packet in (report(*ASCII[c]),RELEASE)]
 
 def encode_shortcuts(shortcuts):
