@@ -6,7 +6,7 @@ Lightweight touchscreen prototype for the Radxa Cubie A7Z. Uses plain HTML, CSS,
 
 The intended source folder is `D:\Projects\SmartKeyboard`. Open `src\index.html` in Edge or Chrome. Edit those three files with your preferred editor.
 
-Features: fixed neon cockpit, five workspaces with browser-saved drafts, 30 Quick Text slots per cluster (two clusters per workspace), editable named text macros, letters, digits, punctuation, Backspace hold-to-repeat, Enter, Shift, and Clear with confirmation. Shift capitalizes letters; symbol shifting is not implemented. This does not yet send keystrokes to Windows or access USB HID.
+Features: fixed neon cockpit, one shared browser-saved editor, Default/Linux/Windows/Email/Personal pages with their own Quick Text and key macros, 30 Quick Text slots per cluster (two clusters per page), letters, digits, punctuation, Backspace hold-to-repeat, Enter, Shift, and Clear with confirmation. Shift capitalizes letters; symbol shifting is not implemented. This does not yet send keystrokes to Windows or access USB HID.
 
 Folders: `src` for the app, `config` for future settings, `assets` for media, `scripts` for helpers, and `backups` for manual backups.
 
@@ -61,19 +61,20 @@ Do not stop or restart EZ Signage, kill existing Chromium processes, change disp
 4. Cancel Clear, then confirm Clear.
 5. Check button size and layout on the physical touchscreen.
 
-The keyboard overlays Quick Text in the fixed lower panel. Toggling it never changes upper panel or editor dimensions and preserves the editor selection and focus. Six named key macros appear per page on the right. Hold a Quick Text button to edit its label and inserted text. Drafts, Quick Text, and macros are saved in the current browser when storage is available; they are not automatically synchronized between Windows and Radxa. USB HID, automatic startup, and USB-C video are separate future work. Keep the current working HDMI/video and USB/touch wiring for this prototype.
+The keyboard overlays Quick Text in the fixed lower panel. Toggling it never changes upper panel or editor dimensions and preserves the editor selection and focus. Page changes update only Macros and Quick Text; the editor text and selection stay unchanged. Settings are saved in the current browser when storage is available; they are not automatically synchronized between Windows and Radxa. USB HID, automatic startup, and USB-C video are separate future work. Keep the current working HDMI/video and USB/touch wiring for this prototype.
 
 ### Key macros versus Quick Text
 
-Quick Text inserts a phrase. Macros contain action sequences, one per line, such as:
+Quick Text inserts a phrase. To program a button, type or select text in the shared editor, hide the keyboard, hold the destination Quick Text button, and confirm once. The captured text becomes both the label and inserted text. Cancelling leaves the button unchanged.
+
+Macro buttons show a name on top and shortcut(s) underneath. They never insert text or execute local previews in the editor. To program one, type the name on line 1 and shortcuts on following lines in the main editor, select the block, then hold a destination macro and confirm. For example:
 
 ```text
-KEY Ctrl+A
-TEXT Hello,
-KEY Enter
+Copy in terminal
+Ctrl+Shift+C
 ```
 
-The current app previews supported actions in its own editor only. Ctrl+A, C, V, X, text, Enter, Tab, Space, Backspace, Delete, Home, End, and left/right arrows have local preview behavior. Clipboard access depends on browser permission. Alt+Tab, Ctrl+S and other OS combinations are stored but not executed; they explicitly report that USB HID is required. No keystrokes are sent to Windows. Older text-macro settings remain in their original storage key, separate from the new key macros.
+Without USB HID, tapping a macro reports that nothing was sent and leaves the editor untouched. Operating-system and email shortcuts may vary with the target application. Older drafts, text-macro settings and key-macro settings remain in their original storage keys. Default, Email, and Personal Quick Text migrate from their matching earlier pages; the former AV/Work and Technical sets remain in legacy storage. New page-specific settings use separate versioned keys.
 
 The neon theme is implemented in CSS and approximates the reference artwork; dictation, formatting, HID status, and other unimplemented concept controls are not shown as working functions. Display blanking is controlled by the Radxa desktop/power settings, not by this page; no display power configuration is changed by this project.
 

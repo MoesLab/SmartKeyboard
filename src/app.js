@@ -142,11 +142,10 @@ function fitCanvas() {
 }
 window.addEventListener('resize', fitCanvas);
 fitCanvas();
-const workspaceNames = ['General', 'Personal', 'Email', 'AV / Work', 'Technical'];
+const workspaceNames = ['Default', 'Linux', 'Windows', 'Email', 'Personal'];
 let activeWorkspace = 0;
 let quickPage = 0;
-let quickEditing = 0;
-let drafts = Array(5).fill('');
+let sharedDraft = '';
 let quickTexts = workspaceNames.map(() => [
   ...['Hello, ', 'Hi there, ', 'Thank you very much, ', 'Thank you for reaching out, ',
   'I hope you are doing well, ', 'It was great speaking with you, ', 'My name is Mo Azizi. ',
@@ -160,28 +159,45 @@ let quickTexts = workspaceNames.map(() => [
   .map(text => ({ label: text.trim(), text })),
   ...Array.from({length:30}, () => ({label:'',text:''}))
 ]);
+const pagePhrases = [null,
+  ['pwd','ls -la','cd ~','uname -a','df -h','free -h','ip addr','git status','git pull --ff-only'],
+  ['Windows settings','File Explorer','Task Manager','System information','Network settings'],
+  ['Hello, ','Thank you for your email. ','Please find the attached file. ','I look forward to hearing from you. ','Best regards, '],
+  ['Hi! ','I will call you later. ','On my way. ','Thank you! ','See you soon. ']];
+pagePhrases.forEach((phrases,index)=>{
+  if (phrases) quickTexts[index]=Array.from({length:60},(_,i)=>({label:phrases[i]||'',text:phrases[i]||''}));
+});
 try {
   const savedDrafts = JSON.parse(localStorage.getItem('smartKeyboard.drafts.v1'));
-  if (Array.isArray(savedDrafts) && savedDrafts.length === 5 && savedDrafts.every(d => typeof d === 'string')) drafts = savedDrafts;
-  const savedQuick = JSON.parse(localStorage.getItem('smartKeyboard.quickText.v1'));
-  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && p.length === 60 && p.every(q => q && typeof q.label === 'string' && q.label.length <= 60 && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
+  sharedDraft = localStorage.getItem('smartKeyboard.sharedDraft.v2') ?? (Array.isArray(savedDrafts) ? savedDrafts.find(d => typeof d === 'string' && d) || '' : '');
+  const oldQuick = JSON.parse(localStorage.getItem('smartKeyboard.quickText.v1'));
+  if (Array.isArray(oldQuick) && oldQuick.length === 5) {
+    for (const [next,old] of [[0,0],[3,2],[4,1]]) {
+      if (Array.isArray(oldQuick[old]) && oldQuick[old].length === 60 && oldQuick[old].every(q=>q && typeof q.label==='string' && typeof q.text==='string')) quickTexts[next]=oldQuick[old];
+    }
+  }
+  const savedQuick = JSON.parse(localStorage.getItem('smartKeyboard.quickText.v2'));
+  if (Array.isArray(savedQuick) && savedQuick.length === 5 && savedQuick.every(p => Array.isArray(p) && p.length === 60 && p.every(q => q && typeof q.label === 'string' && typeof q.text === 'string' && q.text.length <= 5000))) quickTexts = savedQuick;
 } catch { /* Keep defaults when storage is unavailable. */ }
 function saveDraft() {
-  drafts[activeWorkspace] = editor.value;
-  try { localStorage.setItem('smartKeyboard.drafts.v1', JSON.stringify(drafts)); }
+  sharedDraft = editor.value;
+  try { localStorage.setItem('smartKeyboard.sharedDraft.v2', sharedDraft); }
   catch { status.textContent = 'Draft is available for this visit only; browser storage unavailable'; }
 }
 editor.addEventListener('input', saveDraft);
 document.querySelector('#clear').addEventListener('click', saveDraft);
-const quickForm = document.querySelector('#quick-form');
+
 function editQuick(index) {
-  quickEditing = index;
-  const phrase = quickTexts[activeWorkspace][index];
-  quickForm.elements.label.value = phrase.label;
-  quickForm.elements.text.value = phrase.text;
-  document.querySelector('#quick-message').textContent = '';
-  quickForm.hidden = false;
+  const text = composerCapture();
+  if (!text.trim()) { status.textContent = 'Type or select text in the editor, then hold a Quick Text button.'; focusEditor(); return; }
+  if (text.length > 5000) { status.textContent = 'Select up to 5000 characters to save as Quick Text.'; focusEditor(); return; }
+  if (!window.confirm(`Save this as the button label and text on ${workspaceNames[activeWorkspace]}?\n\n${text.slice(0,300)}${text.length>300?'…':''}`)) { focusEditor(); return; }
+  quickTexts[activeWorkspace][index] = {label:text,text};
+  try { localStorage.setItem('smartKeyboard.quickText.v2',JSON.stringify(quickTexts)); status.textContent = 'Quick Text label and text saved'; }
+  catch { status.textContent = 'Updated for this visit only; browser storage unavailable'; }
+  renderQuick(); focusEditor();
 }
+function composerCapture() { return selection[0] !== selection[1] ? editor.value.slice(...selection) : editor.value; }
 function renderQuick() {
   const container = document.querySelector('#quick-buttons');
   container.replaceChildren();
@@ -214,30 +230,19 @@ function renderWorkspaces() {
   workspaceNames.forEach((name, index) => {
     const button = document.createElement('button'); button.textContent = `▱  0${index+1}  ${name}`;
     button.setAttribute('aria-pressed', String(index === activeWorkspace));
+    button.addEventListener('pointerdown',event=>event.preventDefault());
     button.addEventListener('click', () => {
       stopRepeat(); saveDraft(); activeWorkspace = index; quickPage = 0;
-      editor.value = drafts[index]; selection = [editor.value.length,editor.value.length];
       document.querySelector('#workspace-name').textContent = name;
-      status.textContent = `${name} · Local draft`;
+      status.textContent = `${name} · Shared editor`;
       renderWorkspaces(); renderQuick();
+      document.dispatchEvent(new Event('workspacechange')); focusEditor();
     });
     nav.append(button);
   });
 }
-document.querySelector('#quick-prev').addEventListener('click', () => { quickPage = 0; renderQuick(); });
-document.querySelector('#quick-next').addEventListener('click', () => { quickPage = 1; renderQuick(); });
-document.querySelector('#quick-edit').addEventListener('click', () => editQuick(quickPage * 30));
-document.querySelector('#quick-cancel').addEventListener('click', () => { quickForm.hidden = true; });
-quickForm.addEventListener('submit', event => {
-  event.preventDefault();
-  const label = quickForm.elements.label.value.trim(); const text = quickForm.elements.text.value;
-  if (!label || !text.trim()) { document.querySelector('#quick-message').textContent = 'Enter a name and text.'; return; }
-  quickTexts[activeWorkspace][quickEditing] = {label,text};
-  try {
-    localStorage.setItem('smartKeyboard.quickText.v1', JSON.stringify(quickTexts));
-    status.textContent = 'Quick Text saved in this browser';
-  } catch { status.textContent = 'Quick Text updated for this visit only; browser storage unavailable'; }
-  quickForm.hidden = true; renderQuick();
-});
-editor.value = drafts[0]; selection = [editor.value.length,editor.value.length];
+document.querySelector('#quick-prev').addEventListener('click', () => { quickPage = 0; renderQuick(); focusEditor(); });
+document.querySelector('#quick-next').addEventListener('click', () => { quickPage = 1; renderQuick(); focusEditor(); });
+document.querySelector('#quick-edit').addEventListener('click', () => { status.textContent = 'Type/select text in the editor, hide keyboard, then hold the destination Quick Text button to save.'; focusEditor(); });
+editor.value = sharedDraft; selection = [editor.value.length,editor.value.length];
 renderWorkspaces(); renderQuick(); setKeyboardVisible(false);

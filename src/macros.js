@@ -1,121 +1,83 @@
 'use strict';
-// Key sequences are distinct from Quick Text. No synthetic OS keystrokes or HID claims.
-const keyMacroStorage = 'smartKeyboard.keyMacros.v1';
-const keyPattern = /^(?:(?:Ctrl|Alt|Shift|Meta)\+)*(?:[a-z0-9]|F(?:[1-9]|1[0-2])|Enter|Tab|Escape|Backspace|Delete|Home|End|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Space)$/i;
+// These buttons describe host shortcuts. They never mutate the composer.
+const keyPattern = /^(?:(?:Ctrl|Alt|Shift|Meta|Super)\+)*(?:[a-z0-9]|F(?:[1-9]|1[0-2])|Enter|Tab|Escape|Backspace|Delete|Home|End|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Space)$/i;
 function parseMacro(sequence) {
-  const lines = sequence.split('\n').filter(line => line.trim());
-  if (!lines.length || lines.length > 100) throw new Error('Use 1 to 100 actions per macro.');
-  return lines.map(line => {
-    if (line.startsWith('TEXT ')) return { type: 'text', value: line.slice(5) };
-    if (line.startsWith('KEY ') && keyPattern.test(line.slice(4).trim())) return { type: 'key', value: line.slice(4).trim() };
-    throw new Error('Use KEY Ctrl+A or TEXT your text, one action per line.');
+  const lines=sequence.split('\n').filter(line=>line.trim());
+  if (!lines.length || lines.length>100) throw new Error('Use 1 to 100 shortcut lines.');
+  return lines.map(line=>{
+    const value=line.replace(/^KEY /,'').trim();
+    if (!keyPattern.test(value)) throw new Error('Use shortcuts such as Ctrl+C, Alt+Tab or Ctrl+Shift+T, one per line.');
+    return value;
   });
 }
-let keyMacros = [
-  {label:'Ctrl + C · Copy', sequence:'KEY Ctrl+C'},
-  {label:'Ctrl + V · Paste', sequence:'KEY Ctrl+V'},
-  {label:'Ctrl + X · Cut', sequence:'KEY Ctrl+X'},
-  {label:'Ctrl + A · Select all', sequence:'KEY Ctrl+A'},
-  {label:'Alt + Tab · Switch app', sequence:'KEY Alt+Tab'},
-  {label:'Ctrl + S · Save on PC', sequence:'KEY Ctrl+S'},
-  {label:'Replace with greeting', sequence:'KEY Ctrl+A\nTEXT Hello,\nKEY Enter'},
-  {label:'New line + signature', sequence:'KEY End\nKEY Enter\nTEXT Best regards,\nKEY Enter\nTEXT Mo Azizi'}
-];
+const common=[['Copy','Ctrl+C'],['Paste','Ctrl+V'],['Cut','Ctrl+X'],['Select all','Ctrl+A'],['Switch application','Alt+Tab'],['Save','Ctrl+S']];
+const seeds=[common,
+  [['Terminal','Ctrl+Alt+T'],['Copy in terminal','Ctrl+Shift+C'],['Paste in terminal','Ctrl+Shift+V'],['Interrupt command','Ctrl+C'],['Clear terminal','Ctrl+L'],['Switch application','Alt+Tab']],
+  [['Copy','Ctrl+C'],['Paste','Ctrl+V'],['Show desktop','Meta+D'],['File Explorer','Meta+E'],['Task Manager','Ctrl+Shift+Escape'],['Switch application','Alt+Tab']],
+  [['New message','Ctrl+N'],['Reply','Ctrl+R'],['Reply all','Ctrl+Shift+R'],['Forward','Ctrl+F'],['Send (app dependent)','Ctrl+Enter'],['Find','Ctrl+F']],
+  [['Copy','Ctrl+C'],['Paste','Ctrl+V'],['Undo','Ctrl+Z'],['Redo','Ctrl+Y'],['New tab','Ctrl+T'],['Close tab','Ctrl+W']]];
+let pageMacros=seeds.map(page=>page.map(([label,sequence])=>({label,sequence})));
+const keyMacroStorage='smartKeyboard.pageKeyMacros.v2';
 try {
-  const saved = JSON.parse(localStorage.getItem(keyMacroStorage));
-  if (Array.isArray(saved) && saved.length && saved.length <= 30 && saved.every(m => {
-    if (!m || typeof m.label !== 'string' || !m.label.trim() || m.label.length > 40 || typeof m.sequence !== 'string' || m.sequence.length > 5000) return false;
-    try { parseMacro(m.sequence); return true; } catch { return false; }
-  })) keyMacros = saved;
-} catch { /* Keep default sequences. Legacy text macros are left untouched. */ }
-let keyMacroPage = 0;
-let macroRunning = false;
-async function previewMacro(macro) {
-  if (macroRunning) return;
-  const steps = parseMacro(macro.sequence);
-  const supported = new Set(['ctrl+a','ctrl+c','ctrl+v','ctrl+x','enter','tab','space','backspace','delete','home','end','arrowleft','arrowright']);
-  if (steps.some(step => step.type === 'key' && !supported.has(step.value.toLowerCase()))) {
-    status.textContent = `${macro.label}: needs USB HID to control Windows; nothing sent.`;
-    focusEditor(); return;
-  }
-  macroRunning = true;
-  let changed = false;
-  // Clipboard permissions are resolved before any sequence mutates the editor.
-  let clipboard = '';
+  const saved=JSON.parse(localStorage.getItem(keyMacroStorage));
+  if (Array.isArray(saved)&&saved.length===5&&saved.every(page=>Array.isArray(page)&&page.length>0&&page.length<=30&&page.every(m=>{
+    if(!m||typeof m.label!=='string'||!m.label.trim()||m.label.length>80||typeof m.sequence!=='string')return false;
+    try{parseMacro(m.sequence);return true;}catch{return false;}
+  })))pageMacros=saved;
+}catch{/* Preserve old macro storage, including its retired local previews. */}
+let keyMacroPage=0;
+let programmingMacros=false;
+function captureMacro(index) {
+  const text=composerCapture();
+  const [first,...rest]=text.split('\n');
+  const label=first.trim();
+  let shortcuts;
   try {
-    if (steps.some(step => step.type === 'key' && step.value.toLowerCase() === 'ctrl+v')) clipboard = await navigator.clipboard.readText();
-    for (const step of steps) {
-      if (step.type === 'text') { insert(step.value); changed = true; continue; }
-      const key = step.value.toLowerCase();
+    if(!label||label.length>80||!rest.length)throw new Error('Type the name on line 1 and shortcut(s) below it, select that block, then hold a macro. Example: Copy followed by Ctrl+C on the next line.');
+    shortcuts=parseMacro(rest.join('\n'));
+  }catch(error){status.textContent=error.message;focusEditor();return;}
+  if(!window.confirm(`Save macro on ${workspaceNames[activeWorkspace]}?\n\n${label}\n${shortcuts.join(' → ')}`)){focusEditor();return;}
+  pageMacros[activeWorkspace][index]={label,sequence:shortcuts.join('\n')};
+  try{localStorage.setItem(keyMacroStorage,JSON.stringify(pageMacros));status.textContent='Macro name and shortcuts saved';}
+  catch{status.textContent='Macro saved for this visit only; storage unavailable';}
+  programmingMacros=false;renderKeyMacros();focusEditor();
+}
+function renderKeyMacros(){
+  const macros=pageMacros[activeWorkspace];const count=Math.ceil(macros.length/6);
+  keyMacroPage=Math.max(0,Math.min(keyMacroPage,count-1));
+  const container=document.querySelector('#macros');container.replaceChildren();
+  macros.slice(keyMacroPage*6,keyMacroPage*6+6).forEach((macro,offset)=>{
+    const index=keyMacroPage*6+offset;
+    const button=document.createElement('button');
+    const name=document.createElement('strong');name.textContent=macro.label;
+    const shortcuts=document.createElement('small');shortcuts.textContent=parseMacro(macro.sequence).join(' → ');
+    button.append(name,shortcuts);button.title=`${macro.label}\n${shortcuts.textContent}\nUSB HID not connected`;
+    let timer;let held=false;
+    button.addEventListener('pointerdown',event=>{
+      event.preventDefault();if(!event.isPrimary||event.button!==0)return;
+      held=false;timer=setTimeout(()=>{held=true;captureMacro(index);},600);
+    });
+    const cancel=()=>clearTimeout(timer);
+    for(const event of ['pointerup','pointercancel','pointerleave'])button.addEventListener(event,cancel);
+    button.addEventListener('contextmenu',event=>event.preventDefault());
+    button.addEventListener('click',()=>{
+      cancel();if(held){held=false;return;}
+      if(programmingMacros){captureMacro(index);return;}
+      status.textContent=`${macro.label} · ${shortcuts.textContent} · USB HID not connected; nothing sent.`;
       focusEditor();
-      if (key === 'ctrl+a') { editor.select(); remember(); }
-      else if (key === 'ctrl+c' || key === 'ctrl+x') {
-        clipboard = editor.value.slice(...selection);
-        await navigator.clipboard.writeText(clipboard);
-        if (key === 'ctrl+x') { insert(''); changed = true; }
-      } else if (key === 'ctrl+v') { insert(clipboard); changed = true; }
-      else if (['enter','tab','space'].includes(key)) { insert(key === 'enter' ? '\n' : key === 'tab' ? '\t' : ' '); changed = true; }
-      else if (key === 'backspace') { backspace(); changed = true; }
-      else if (key === 'delete') {
-        if (selection[0] === selection[1]) selection[1] += Array.from(editor.value.slice(selection[1]))[0]?.length || 0;
-        insert(''); changed = true;
-      } else {
-        let [start,end] = selection;
-        if (key === 'home') start = start === 0 ? 0 : editor.value.lastIndexOf('\n', start - 1) + 1;
-        if (key === 'end') { const next = editor.value.indexOf('\n', end); start = next < 0 ? editor.value.length : next; }
-        if (key === 'arrowleft') start = start !== end ? start : Math.max(0,start - (Array.from(editor.value.slice(0,start)).pop()?.length || 0));
-        if (key === 'arrowright') start = start !== end ? end : end + (Array.from(editor.value.slice(end))[0]?.length || 0);
-        selection = [start,start];
-      }
-    }
-    status.textContent = `${macro.label}: previewed in this editor only · USB HID off`;
-  } catch {
-    status.textContent = `Clipboard unavailable${changed ? '; sequence stopped after earlier actions' : '; sequence stopped'} · nothing sent to Windows`;
-  } finally { macroRunning = false; focusEditor(); }
-}
-function renderKeyMacros() {
-  const count = Math.ceil(keyMacros.length / 6);
-  keyMacroPage = Math.max(0,Math.min(keyMacroPage,count - 1));
-  const container = document.querySelector('#macros'); container.replaceChildren();
-  keyMacros.slice(keyMacroPage * 6,keyMacroPage * 6 + 6).forEach(macro => {
-    const button = document.createElement('button'); button.textContent = macro.label;
-    button.title = `${macro.sequence}\nLocal preview only · Windows output requires USB HID`;
-    button.addEventListener('pointerdown', event => event.preventDefault());
-    button.addEventListener('click', () => previewMacro(macro)); container.append(button);
+    });container.append(button);
   });
-  document.querySelector('#macro-page').textContent = `${keyMacroPage+1} / ${count} · LOCAL PREVIEW`;
-  document.querySelector('#macros-prev').disabled = keyMacroPage === 0;
-  document.querySelector('#macros-next').disabled = keyMacroPage === count - 1;
+  document.querySelector('#macro-page').textContent=`${keyMacroPage+1} / ${count} · USB HID OFF`;
+  document.querySelector('#macros-prev').disabled=keyMacroPage===0;
+  document.querySelector('#macros-next').disabled=keyMacroPage===count-1;
+  document.querySelector('#edit-macros').textContent=programmingMacros?'Cancel':'✎ Set';
 }
-document.querySelector('#macros-prev').addEventListener('click', () => { keyMacroPage--; renderKeyMacros(); focusEditor(); });
-document.querySelector('#macros-next').addEventListener('click', () => { keyMacroPage++; renderKeyMacros(); focusEditor(); });
-const macroForm = document.querySelector('#macro-form');
-const macroFields = document.querySelector('#macro-fields');
-function addKeyMacro(macro = {label:'',sequence:''}) {
-  const field = document.createElement('fieldset'); field.className = 'macro-field';
-  for (const [name,caption,tag,max] of [['label','Button name','input',40],['sequence','Key / text sequence','textarea',5000]]) {
-    const label = document.createElement('label'); label.textContent = caption;
-    const input = document.createElement(tag); input.name = name; input.value = macro[name]; input.required = true; input.maxLength = max;
-    label.append(input); field.append(label);
-  }
-  macroFields.append(field); document.querySelector('#add-macro').disabled = macroFields.children.length >= 30;
-}
-function closeKeyMacros() { macroForm.hidden = true; document.querySelector('#edit-macros').setAttribute('aria-expanded','false'); focusEditor(); }
-document.querySelector('#edit-macros').addEventListener('click', () => {
-  stopRepeat(); macroFields.replaceChildren(); keyMacros.forEach(addKeyMacro);
-  document.querySelector('#macro-message').textContent = ''; macroForm.hidden = false;
-  document.querySelector('#edit-macros').setAttribute('aria-expanded','true');
+document.querySelector('#macros-prev').addEventListener('click',()=>{keyMacroPage--;renderKeyMacros();focusEditor();});
+document.querySelector('#macros-next').addEventListener('click',()=>{keyMacroPage++;renderKeyMacros();focusEditor();});
+document.querySelector('#edit-macros').addEventListener('click',()=>{
+  programmingMacros=!programmingMacros;
+  status.textContent=programmingMacros?'In editor: name on line 1, shortcut(s) below. Select that block, then tap a macro to save.':'Macro programming cancelled';
+  renderKeyMacros();focusEditor();
 });
-document.querySelector('#add-macro').addEventListener('click', () => { if (macroFields.children.length < 30) addKeyMacro(); });
-document.querySelector('#cancel-macros').addEventListener('click',closeKeyMacros);
-macroForm.addEventListener('submit',event => {
-  event.preventDefault();
-  const next = [...macroFields.children].map(field => ({label:field.querySelector('[name="label"]').value.trim(),sequence:field.querySelector('[name="sequence"]').value}));
-  try { next.forEach(macro => { if (!macro.label) throw new Error('Name each button.'); parseMacro(macro.sequence); }); }
-  catch(error) { document.querySelector('#macro-message').textContent = error.message; return; }
-  keyMacros = next;
-  try { localStorage.setItem(keyMacroStorage,JSON.stringify(keyMacros)); status.textContent = 'Key macros saved in this browser'; }
-  catch { status.textContent = 'Key macros saved for this visit only; storage unavailable'; }
-  renderKeyMacros(); closeKeyMacros();
-});
+document.addEventListener('workspacechange',()=>{keyMacroPage=0;programmingMacros=false;renderKeyMacros();});
 renderKeyMacros();

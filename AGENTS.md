@@ -11,3 +11,6 @@
 - Do not present USB HID, dictation, script execution, or formatting controls as operational before they are implemented.
 - Macros are key combinations or sequences (optionally mixed with text), not a second Quick Text panel. Preserve legacy text-macro storage. Local previews must explicitly identify their target; OS shortcuts require a real HID bridge.
 - Keyboard hide/show must restore editor focus and the exact selection/caret range. Form editing must retain its own focus.
+- Pages are Default, Linux, Windows, Email, Personal. Each has its own Macros and Quick Text. One shared editor must keep text, selection, and focus unchanged on page switches.
+- Macro buttons display the name on top and shortcut sequence below. They must NEVER run a preview in or insert anything into the composer. Without HID, report that nothing was sent.
+- Program Quick Text from the selected composer text (or whole draft) by holding a destination button and confirming once. Save both label and text together. Program macros from a selected block: name on first line, shortcuts below. Do not require typing into a modal form without an accessible keyboard.
