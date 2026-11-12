@@ -87,6 +87,15 @@ let macros = [
   { label: 'Yes', text: 'Yes' },
   { label: 'No', text: 'No' }
 ];
+const starterPhrases = ['Hi there, ', 'Thank you very much. ', 'Thank you for reaching out. ',
+  'I hope you are doing well. ', 'It was great speaking with you. ', 'My name is Mo Azizi. ',
+  'I am an AV engineer. ', 'I am based in Toronto. ', 'I would like to follow up. ',
+  'Following our discussion, ', 'Here is an update. ', 'Please let me know your availability. ',
+  'Can we schedule a meeting? ', 'Could you please confirm? ', 'I have attached the file for review. ',
+  'Please find the details below. ', 'Let me know if you have questions. ', 'The system has been tested. ',
+  'All rooms are validated. ', 'The issue has been resolved. ', 'A restart may be required. ',
+  'Please proceed when ready. ', 'I look forward to your reply. ', 'Have a great day. ', 'Best regards, '];
+macros.push(...starterPhrases.map(text => ({ label: text.trim(), text })));
 try {
   const saved = JSON.parse(localStorage.getItem(macroStorageKey));
   if (Array.isArray(saved) && saved.length > 0 && saved.length <= 30 && saved.every(m =>
@@ -97,10 +106,14 @@ const macroForm = document.querySelector('#macro-form');
 const macroFields = document.querySelector('#macro-fields');
 const editMacros = document.querySelector('#edit-macros');
 const macroMessage = document.querySelector('#macro-message');
+let macroPage = 0;
+const macrosPerPage = 12;
 function renderMacros() {
+  const pageCount = Math.ceil(macros.length / macrosPerPage);
+  macroPage = Math.max(0, Math.min(macroPage, pageCount - 1));
   const container = document.querySelector('#macros');
   container.replaceChildren();
-  for (const macro of macros) {
+  for (const macro of macros.slice(macroPage * macrosPerPage, (macroPage + 1) * macrosPerPage)) {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = macro.label;
@@ -109,7 +122,12 @@ function renderMacros() {
     button.addEventListener('click', () => insert(macro.text));
     container.append(button);
   }
+  document.querySelector('#macro-page').textContent = `${macroPage + 1} / ${pageCount} · ${macros.length} buttons`;
+  document.querySelector('#macros-prev').disabled = macroPage === 0;
+  document.querySelector('#macros-next').disabled = macroPage === pageCount - 1;
 }
+document.querySelector('#macros-prev').addEventListener('click', () => { macroPage--; renderMacros(); });
+document.querySelector('#macros-next').addEventListener('click', () => { macroPage++; renderMacros(); });
 function addMacroFields(macro = { label: '', text: '' }) {
   const field = document.createElement('fieldset');
   field.className = 'macro-field';
@@ -179,15 +197,25 @@ document.querySelector('#copy-text').addEventListener('click', async () => {
 });
 document.querySelector('#toggle-keyboard').addEventListener('click', event => {
   stopRepeat();
-  const hidden = document.querySelector('.keyboard-panel').classList.toggle('collapsed');
+  const hidden = document.querySelector('.keyboard-panel').hidden = !document.querySelector('.keyboard-panel').hidden;
+  document.querySelector('main').classList.toggle('keyboard-hidden', hidden);
   event.currentTarget.textContent = hidden ? 'Show keyboard' : 'Hide keyboard';
   event.currentTarget.setAttribute('aria-expanded', String(!hidden));
 });
+document.querySelector('#toggle-keyboard').setAttribute('aria-controls', 'keyboard-panel');
 function updateClock() {
   document.querySelector('#clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 updateClock();
 setInterval(updateClock, 10000);
+const reloadButton = document.createElement('button');
+reloadButton.textContent = 'Reload';
+reloadButton.className = 'reload-button';
+reloadButton.addEventListener('click', () => {
+  if (editor.value && !window.confirm('Reload the interface? Unsaved editor text will be cleared.')) return;
+  window.location.reload();
+});
+document.querySelector('.header-tools').prepend(reloadButton);
 document.querySelector('#clear').addEventListener('click', () => {
   if (editor.value && !window.confirm('Clear all text in this page?')) return;
   editor.value = ''; selection = [0, 0]; status.textContent = 'Text cleared'; editor.focus();

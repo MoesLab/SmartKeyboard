@@ -73,3 +73,44 @@ footer { font-size:13px; margin-top:14px; }
 @media(max-width:1000px) { .cockpit { grid-template-columns:120px minmax(0,1fr); } .macro-panel { grid-column:1 / -1; } .macro-panel .quick { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); max-height:180px; } .header-tools { gap:8px; } }
 @media(max-width:700px) { .cockpit { grid-template-columns:1fr; gap:12px; } .tools { display:grid; grid-template-columns:repeat(3,1fr); } .tools h2,.tool-note { display:none; } .tools button { min-height:48px; font-size:14px; } .tools #clear { grid-column:1 / -1; } .brand-mark { display:none; } .panel { padding:10px; } .panel-heading span,.local-note { display:none; } h1 { letter-spacing:1px; } header p { letter-spacing:2px; } #editor { font-size:22px; } .row { gap:4px; } }
 @media(max-width:700px) { main { padding:12px; } button { font-size:18px; padding:8px 2px; min-height:52px; } .row { gap:4px; } .row .wide { font-size:14px; } .badge { font-size:13px; } }
+
+/* Fit the complete cockpit to landscape touchscreens, including 1920 × 1080. */
+[hidden] { display:none !important; }
+.macro-pages { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:10px; }
+.macro-pages button { min-height:44px; min-width:52px; padding:6px; color:var(--yellow); border-color:var(--yellow); font-size:18px; }
+.macro-pages span { color:#d4cc9c; font-size:13px; text-align:center; }
+.reload-button { min-height:40px; padding:8px 14px; font-size:16px; }
+.macro-panel .quick button { font-size:17px; line-height:1.2; }
+@media(min-width:1001px) and (min-height:600px) {
+  html,body { height:100%; overflow:hidden; }
+  main { height:100vh; height:100dvh; display:grid; grid-template-rows:58px minmax(0,1fr) minmax(0,40%); gap:12px; padding:12px; }
+  main.keyboard-hidden { grid-template-rows:58px minmax(0,1fr); }
+  header { margin:0; padding:0 6px 8px; flex-wrap:nowrap; }
+  h1 { font-size:32px; letter-spacing:2px; }
+  header p { font-size:10px; letter-spacing:3px; }
+  .brand-mark { font-size:44px; }
+  .badge,time { padding:8px 12px; }
+  .cockpit { grid-template-columns:125px minmax(0,1fr) minmax(420px,36%); gap:12px; margin:0; min-height:0; }
+  .panel { padding:10px; min-height:0; border-radius:12px 3px 12px 3px; }
+  .tools { gap:10px; }
+  .tools button { min-height:48px; padding:8px; font-size:16px; }
+  .tools h2 { font-size:14px; }
+  .tool-note { font-size:12px; }
+  .panel-heading { margin-bottom:8px; padding-bottom:8px; }
+  .panel-heading h2 { font-size:18px; }
+  .composer > label { margin-bottom:6px; font-size:12px; }
+  #editor { height:0; min-height:0; padding:12px; font-size:25px; }
+  footer { margin-top:8px; font-size:12px; flex-wrap:nowrap; }
+  .macro-panel { display:flex; flex-direction:column; }
+  .macro-heading { margin-bottom:8px; flex-wrap:nowrap; }
+  .macro-heading h2 { font-size:18px; }
+  .macro-heading button { min-height:40px; padding:6px 12px; }
+  .macro-panel #macros { flex:1; min-height:0; max-height:none; overflow:visible; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(4,minmax(0,1fr)); gap:8px; padding:2px; }
+  .macro-panel #macros button { min-height:0; min-width:0; padding:6px; font-size:clamp(14px,1vw,19px); }
+  .keyboard-panel { display:flex; flex-direction:column; }
+  .keyboard-panel .panel-heading { flex-shrink:0; margin:0 0 8px; }
+  #keyboard { flex:1; min-height:0; display:grid; grid-template-rows:repeat(5,minmax(0,1fr)); gap:8px; }
+  .row { gap:8px; margin:0; min-height:0; }
+  .row button { min-height:0; padding:6px; font-size:24px; }
+  .row .wide { font-size:18px; }
+}

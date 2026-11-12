@@ -21,6 +21,7 @@
     <aside class="macro-panel panel">
     <div class="macro-heading"><h2>Text macros</h2><button id="edit-macros" aria-expanded="false">Edit buttons</button></div>
     <section id="macros" aria-label="Text macros" class="quick"></section>
+    <nav class="macro-pages" aria-label="Macro pages"><button id="macros-prev" aria-label="Previous macro page">◀</button><span id="macro-page"></span><button id="macros-next" aria-label="Next macro page">▶</button></nav>
     <form id="macro-form" hidden>
       <p>Name each button, then enter the text it should insert.</p>
       <div id="macro-fields"></div>
@@ -29,7 +30,7 @@
     </form>
     </aside>
     </div>
-    <section class="keyboard-panel panel"><div class="panel-heading"><h2>⌨ TOUCH KEYBOARD</h2><span>HOLD BACKSPACE TO REPEAT</span></div>
+    <section class="keyboard-panel panel" id="keyboard-panel"><div class="panel-heading"><h2>⌨ TOUCH KEYBOARD</h2><span>HOLD BACKSPACE TO REPEAT</span></div>
     <section id="keyboard" aria-label="Virtual keyboard"></section>
     </section>
   </main>
