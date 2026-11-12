@@ -6,7 +6,7 @@ Lightweight touchscreen prototype for the Radxa Cubie A7Z. Uses plain HTML, CSS,
 
 The intended source folder is `D:\Projects\SmartKeyboard`. Open `src\index.html` in Edge or Chrome. Edit those three files with your preferred editor.
 
-Features: text editing at the cursor, selection replacement, quick phrases, letters, digits, punctuation, Backspace, Enter, persistent Shift toggle, and Clear with confirmation. Shift capitalizes letters; symbol shifting is not implemented. Text is held only in the page and is lost on reload. This does not yet send keystrokes to Windows or access USB HID.
+Features: fixed neon cockpit, five workspaces with browser-saved drafts, 30 Quick Text slots per cluster (two clusters per workspace), editable named text macros, letters, digits, punctuation, Backspace hold-to-repeat, Enter, Shift, and Clear with confirmation. Shift capitalizes letters; symbol shifting is not implemented. This does not yet send keystrokes to Windows or access USB HID.
 
 Folders: `src` for the app, `config` for future settings, `assets` for media, `scripts` for helpers, and `backups` for manual backups.
 
@@ -61,7 +61,7 @@ Do not stop or restart EZ Signage, kill existing Chromium processes, change disp
 4. Cancel Clear, then confirm Clear.
 5. Check button size and layout on the physical touchscreen.
 
-The neon interface includes named text macros saved in the current browser, Backspace hold-to-repeat, selection, clipboard copy when available, and a keyboard visibility toggle. Typed editor text is not saved. USB HID, automatic startup, and USB-C video are separate future work. Keep the current working HDMI/video and USB/touch wiring for this prototype.
+The keyboard overlays Quick Text in the fixed lower panel. Toggling it never changes upper panel or editor dimensions. Six named macros appear per page on the right. Hold a Quick Text button to edit its label and inserted text. Drafts, Quick Text, and macros are saved in the current browser when storage is available; they are not automatically synchronized between Windows and Radxa. USB HID, automatic startup, and USB-C video are separate future work. Keep the current working HDMI/video and USB/touch wiring for this prototype.
 
 ## Update through GitHub
 
