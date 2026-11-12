@@ -166,3 +166,8 @@ Settings offers Neon Cyberpunk, Industrial AV and Modern Glass without changing 
 Macro + Add captures the selected composer block, or the entire draft: first line is the button name, following lines are shortcuts (for example Copy then Ctrl+C). Invalid input now opens themed instructions with Show keyboard; it never silently creates a placeholder or alters the draft. Valid input asks once before saving the named macro.
 Graphics use static gradients, highlights and frame details, without animation loops or backdrop blur. Per-button drop-shadow filters were removed. Actual Radxa rendering cost and STT concurrency still require hardware measurement.
 While asleep, the dim time/connection indicator travels around the screen on a 10-minute loop, with a 48px edge margin. This explicitly requested motion uses one transform animation and is hidden when awake.
+
+Text SEND audio follows accepted backend delivery: light paired notes while queued/sending, a rising chime when reports finish, and lower notes if interrupted. Tone off mutes these cues. Repeated status polls do not replay completion sounds. Reports sent is not acknowledgement by the PC application.
+
+Settings > Tone volume offers 25/50/75/100% plus Test sound. It scales app button and SEND tones; 50% preserves the previous level. It is saved and included in JSON backups. Tone off remains the master mute. This does not change the Linux system volume.
+The composer lights steadily cyan during a tracked text send, briefly green when Bluetooth reports finish, or amber when interrupted. The draft, caret, fonts and geometry remain unchanged; there is no rapid flashing.

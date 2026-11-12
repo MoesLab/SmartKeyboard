@@ -69,6 +69,21 @@ class BluetoothLogic(unittest.TestCase):
             item.handle('/api/send',{'text':'Hello'+chr(10)+'ی'})
         self.assertFalse(item.queue)
 
+    def test_speed_presets_retime_only_before_send(self):
+        item=controller();item.report_interval_ms=5;item.report_timer=42
+        with patch.object(keyboard.GLib,'timeout_add',return_value=43,create=True) as schedule, patch.object(keyboard.GLib,'source_remove',create=True) as remove:
+            item.handle('/api/send',{'text':'Hello','reportIntervalMs':15})
+            self.assertEqual(item.report_interval_ms,15)
+            self.assertEqual(schedule.call_args.args[0],15);remove.assert_called_once_with(42)
+            with self.assertRaises(ValueError):item.handle('/api/send',{'text':'X','reportIntervalMs':5})
+            self.assertEqual(item.report_interval_ms,15);self.assertEqual(schedule.call_count,1)
+
+    def test_speed_rejects_invalid_values_without_queue(self):
+        for speed in (True,0,3,100,'5',5.0):
+            item=controller()
+            with self.assertRaises(ValueError):item.handle('/api/send',{'text':'Hello','reportIntervalMs':speed})
+            self.assertFalse(item.queue)
+
     def test_zero_or_multiple_hosts_cannot_send(self):
         for kind in ('unpaired','multiple','unsubscribed'):
             item=controller()

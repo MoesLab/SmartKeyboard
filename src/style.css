@@ -202,3 +202,7 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 .sleep-indicator { display:flex; flex-direction:column; align-items:center; gap:12px; color:#41494e; font:16px/1.4 "Segoe UI",sans-serif; pointer-events:none; position:absolute; left:0; top:0; width:max-content; max-width:calc(100vw - 96px); text-align:center; animation:sleep-drift 600s linear infinite; }
 .sleep-indicator strong { font-size:17px; font-weight:500; letter-spacing:2px; } .sleep-indicator time { color:#4b545a; padding:0; border:0; background:none; font-size:28px; }
 @keyframes sleep-drift { 0%,100% { transform:translate(48px,48px); } 25% { transform:translate(calc(100vw - 100% - 48px),48px); } 50% { transform:translate(calc(100vw - 100% - 48px),calc(100vh - 100% - 48px)); } 75% { transform:translate(48px,calc(100vh - 100% - 48px)); } }
+/* Steady send lighting changes paint only; no flashing, resizing or text changes. */
+.composer[data-send-state="sending"] #editor { background:#0a303e; box-shadow:inset 0 0 18px #36dcff35,0 0 8px #36dcff70; border-color:#9fefff; }
+.composer[data-send-state="sent"] #editor { background:#112a21; border-color:#a6ef98; box-shadow:inset 0 0 12px #76e68122; }
+.composer[data-send-state="stopped"] #editor { background:#302718; border-color:#ffcb70; box-shadow:inset 0 0 12px #e6a83b22; }

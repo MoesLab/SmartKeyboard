@@ -34,6 +34,8 @@ document.addEventListener('keydown',event=>{
 
 let toneEnabled = true;
 let audioContext;
+let toneVolume=50;
+try{const saved=Number(localStorage.getItem('smartKeyboard.toneVolume'));if([25,50,75,100].includes(saved))toneVolume=saved;}catch{}
 try { toneEnabled = localStorage.getItem('smartKeyboard.keyTone') !== 'off'; } catch {}
 const toneButton=document.createElement('button');
 toneButton.id='key-tone'; toneButton.className='reload-button';
@@ -51,7 +53,7 @@ function keyTone() {
     const osc=audioContext.createOscillator(); const gain=audioContext.createGain();
     const now=audioContext.currentTime;
     osc.type='sine'; osc.frequency.setValueAtTime(950,now);
-    gain.gain.setValueAtTime(0.035,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.035);
+    gain.gain.setValueAtTime(0.035*toneVolume/50,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.035);
     osc.connect(gain); gain.connect(audioContext.destination);
     osc.start(now); osc.stop(now+0.04);
     osc.onended=()=>{osc.disconnect();gain.disconnect();};
@@ -133,3 +135,47 @@ composerBS.addEventListener('pointerdown',event=>{
 composerBS.addEventListener('lostpointercapture',()=>stopRepeat());
 composerBS.addEventListener('contextmenu',event=>event.preventDefault());
 composerBS.addEventListener('click',event=>{if(event.detail===0)backspace();});
+
+// Short, bounded cues follow real Bluetooth delivery state, not button presses.
+let sendSoundTimer=null;
+function stopSendSound(){clearInterval(sendSoundTimer);sendSoundTimer=null;}
+function sendChime(notes){
+  if(!toneEnabled||window.smartKeyboardScreen?.isAsleep())return;
+  try{
+    const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+    audioContext ||= new Audio();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+    const now=audioContext.currentTime;
+    notes.forEach((frequency,i)=>{
+      const osc=audioContext.createOscillator(),gain=audioContext.createGain(),start=now+i*0.085;
+      osc.type='sine';osc.frequency.setValueAtTime(frequency,start);
+      gain.gain.setValueAtTime(0.024*toneVolume/50,start);gain.gain.exponentialRampToValueAtTime(0.001,start+0.07);
+      osc.connect(gain);gain.connect(audioContext.destination);osc.start(start);osc.stop(start+0.08);
+      osc.onended=()=>{osc.disconnect();gain.disconnect();};
+    });
+  }catch{/* Audio must never interrupt delivery. */}
+}
+function beginSendSound(){stopSendSound();sendChime([660,880]);sendSoundTimer=setInterval(()=>sendChime([740,880]),650);}
+function endSendSound(success){stopSendSound();sendChime(success?[880,1100,1320]:[440,330]);}
+window.addEventListener('pagehide',stopSendSound);
+
+function updateToneVolume(){document.querySelectorAll('[data-tone-volume]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.toneVolume)===toneVolume)));}
+document.querySelectorAll('[data-tone-volume]').forEach(button=>button.addEventListener('click',()=>{
+  toneVolume=Number(button.dataset.toneVolume);updateToneVolume();
+  try{localStorage.setItem('smartKeyboard.toneVolume',String(toneVolume));}catch{}
+}));
+document.querySelector('#tone-preview').addEventListener('click',()=>{
+  if(!toneEnabled){document.querySelector('#settings-message').textContent='Tone is off. Turn Tone on in the header to hear the preview.';return;}
+  sendChime([660,880,1100]);
+});
+updateToneVolume();
+
+let transferIntervalMs=null;
+try{const saved=Number(localStorage.getItem('smartKeyboard.transferIntervalMs'));if([5,10,15].includes(saved))transferIntervalMs=saved;}catch{}
+function updateTransferSpeed(){document.querySelectorAll('[data-transfer-interval]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.transferInterval)===(transferIntervalMs??bluetoothState?.reportIntervalMs))));}
+document.querySelectorAll('[data-transfer-interval]').forEach(button=>button.addEventListener('click',()=>{
+  transferIntervalMs=Number(button.dataset.transferInterval);
+  try{localStorage.setItem('smartKeyboard.transferIntervalMs',String(transferIntervalMs));}catch{}
+  updateTransferSpeed();document.querySelector('#settings-message').textContent='Speed saved for the next send. If letters are missed, choose Reliable (33 chars/s). Rates are approximate.';
+}));
+// The bridge is declared later; read its current speed only after scripts initialize.
+setTimeout(updateTransferSpeed,0);

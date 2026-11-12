@@ -7,6 +7,8 @@ let pollingBluetooth=false;
 let bluetoothSending=false;
 let trackedDeliveryId='';
 let reflectedDelivery='';
+let audibleDeliveryId='';
+let audibleDeliveryState='';
 let previousConnection='';
 const btButton=document.querySelector('#bluetooth-open');
 const btPanel=document.querySelector('#bluetooth-panel');
@@ -27,8 +29,9 @@ async function sendBluetooth(route,data){
   if(bluetoothSending)return;
   bluetoothSending=true;
   try{
-    const result=await bluetoothRequest(route,data);status.textContent=result.message;
-    if(result.delivery?.id){trackedDeliveryId=result.delivery.id;reflectedDelivery='';reflectSendDelivery(result.delivery);}
+    const payload=transferIntervalMs===null?data:{...data,reportIntervalMs:transferIntervalMs};
+    const result=await bluetoothRequest(route,payload);status.textContent=result.message;
+    if(result.delivery?.id){stopSendFeedback();stopSendSound();audibleDeliveryId=route==='/api/send'?result.delivery.id:'';audibleDeliveryState='';trackedDeliveryId=result.delivery.id;reflectedDelivery='';reflectSendDelivery(result.delivery);}
   }
   catch(error){status.textContent=error.message.includes('fetch')?'Bluetooth service unavailable; nothing sent.':error.message;}
   finally{bluetoothSending=false;focusEditor();pollBluetooth();}
@@ -42,9 +45,16 @@ function reflectSendDelivery(delivery){
   const signature=delivery.id+':'+delivery.state+':'+delivery.remainingReports;
   if(signature===reflectedDelivery)return;
   reflectedDelivery=signature;status.textContent=delivery.message;
+  if(delivery.id===audibleDeliveryId&&delivery.state!==audibleDeliveryState){
+    const previous=audibleDeliveryState;audibleDeliveryState=delivery.state;
+    if(['queued','sending'].includes(delivery.state)){
+      if(!['queued','sending'].includes(previous)){showSendFeedback('sending');beginSendSound();}
+    }else if(delivery.state==='sent'){showSendFeedback('sent');endSendSound(true);}
+    else{showSendFeedback('stopped');endSendSound(false);}
+  }
 }
 function renderBluetooth(){
-  const state=bluetoothState;
+  const state=bluetoothState;updateTransferSpeed();
   if(state?.shutdownError && shutdownRequested){
     shutdownRequested=false;document.querySelector('#shutdown-panel').hidden=true;
     for(const selector of ['header','.cockpit','.lower-panel'])document.querySelector(selector).inert=false;
@@ -87,7 +97,7 @@ async function pollBluetooth(){
     if(previousQueue>0 && bluetoothState.queuedReports===0 && bluetoothState.message)status.textContent=bluetoothState.message;
     pollBluetooth.previousQueue=bluetoothState.queuedReports||0;
     if(bluetoothState.pairing && !bluetoothPanelOpen && !finishConfirmation)openBluetooth();
-  }catch{bluetoothState=null;}
+  }catch{bluetoothState=null;stopSendSound();stopSendFeedback();}
   finally{pollingBluetooth=false;renderBluetooth();}
 }
 function openBluetooth(){
@@ -156,3 +166,8 @@ document.querySelector('#bluetooth-stop').addEventListener('click',async()=>{
   catch(error){btInfo.textContent=error.message;}
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollBluetooth();});
+
+let sendFeedbackTimer=null;
+function stopSendFeedback(){clearTimeout(sendFeedbackTimer);delete document.querySelector(".composer").dataset.sendState;editor.setAttribute("aria-busy","false");}
+function showSendFeedback(state){clearTimeout(sendFeedbackTimer);document.querySelector(".composer").dataset.sendState=state;editor.setAttribute("aria-busy",String(state==="sending"));if(state!=="sending")sendFeedbackTimer=setTimeout(stopSendFeedback,1400);}
+window.addEventListener("pagehide",stopSendFeedback);

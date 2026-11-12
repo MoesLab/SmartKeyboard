@@ -77,3 +77,5 @@ It excludes bridge credentials and Bluetooth pairing keys. Copy the downloaded f
 from Radxa to the PC using MobaXterm. Restore validates the file, requests confirmation,
 downloads a before-restore backup, replaces known settings and reloads the interface.
 These files contain your saved text; keep them somewhere appropriate.
+
+Settings Send speed applies 15/10/5ms report pacing to the next text or macro request (~33/50/100 characters per second). The authenticated send payload optionally carries reportIntervalMs. It is validated before queueing and cannot alter an active send. Without a preference the backend CLI interval is preserved. The browser preference survives reloads and backups; reconnect does not trigger a send. These are target rates, not guarantees; use 15ms if characters are missed. Backend reinstallation is required for this control.

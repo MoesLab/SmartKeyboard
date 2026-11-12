@@ -235,7 +235,8 @@ class Controller:
         bus.add_signal_receiver(self.changed,bus_name='org.bluez',dbus_interface=PROPS,signal_name='PropertiesChanged',path_keyword='path')
         bus.add_signal_receiver(self.added,bus_name='org.bluez',dbus_interface=OM,signal_name='InterfacesAdded')
         bus.add_signal_receiver(self.removed,bus_name='org.bluez',dbus_interface=OM,signal_name='InterfacesRemoved')
-        GLib.timeout_add(report_interval_ms,self.tick)
+        self.report_interval_ms=report_interval_ms
+        self.report_timer=GLib.timeout_add(report_interval_ms,self.tick)
         GLib.timeout_add_seconds(1,self.expire_pairing)
 
     def refresh_objects(self):
@@ -277,7 +278,7 @@ class Controller:
         return {'registered':self.registered,'ready':bool(self.ready()),'error':self.error,
                 'host':str(hosts[0][1].get('Alias','Paired PC')) if len(hosts)==1 else '',
                 'connectedHosts':len(hosts),'queuedReports':len(self.queue),'connection':self.connection_status(),
-                'delivery':dict(getattr(self,'delivery',{})),
+                'delivery':dict(getattr(self,'delivery',{})),'reportIntervalMs':getattr(self,'report_interval_ms',5),
                 'pairingSeconds':max(0,int(self.pair_until-time.monotonic())),
                 'pairing':self.agent.pending,'displayPasskey':self.pair_display,'message':self.last_message,
                 'shutdownPending':getattr(self,'shutdown_pending',False),'shutdownError':getattr(self,'shutdown_error','')}
@@ -290,10 +291,17 @@ class Controller:
         if value not in (b'\0',b'\1'): raise NotSupported('Unknown HID control point')
         self.suspended=value==b'\0'
 
-    def enqueue(self,reports):
+    def enqueue(self,reports,report_interval_ms=None):
+        if report_interval_ms is not None and (type(report_interval_ms) is not int or report_interval_ms not in (5,10,15)):
+            raise ValueError('Choose 5, 10 or 15 milliseconds per report.')
         if not self.ready():
             raise ValueError('PC keyboard connection is not ready ('+self.connection_status()+'). Draft kept; nothing sent. Open Bluetooth and refresh the connection.')
         if self.queue:raise ValueError('A send is in progress; wait or use Stop send in Bluetooth settings.')
+        if report_interval_ms is not None and report_interval_ms!=getattr(self,'report_interval_ms',5):
+            timer=GLib.timeout_add(report_interval_ms,self.tick)
+            old_timer=getattr(self,'report_timer',None)
+            if old_timer is not None:GLib.source_remove(old_timer)
+            self.report_timer=timer;self.report_interval_ms=report_interval_ms
         self.queue_target=self.hosts()[0][0];self.queue.extend(reports)
         host=str(self.hosts()[0][1].get('Alias','PC'))
         self.delivery={'id':secrets.token_hex(8),'state':'queued','totalReports':len(reports),'remainingReports':len(reports),'actionsSent':0,'host':host,'message':'Keystrokes queued for '+host}
@@ -388,8 +396,8 @@ class Controller:
             if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
             return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
         if route=='/api/pair': return self.open_pairing()
-        if route=='/api/send': return self.enqueue(encode_text(data.get('text')))
-        if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')))
+        if route=='/api/send': return self.enqueue(encode_text(data.get('text')),data.get('reportIntervalMs'))
+        if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')),data.get('reportIntervalMs'))
         if route=='/api/pair-answer':
             if not self.agent.pending or data.get('id')!=self.agent.pending['id']: raise ValueError('Pairing request expired')
             accepted=data.get('accept') is True
