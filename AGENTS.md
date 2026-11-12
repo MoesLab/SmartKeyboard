@@ -24,3 +24,7 @@
 - Wireless keyboard receiver works on Windows; neither the external hub nor receiver enumerated on Radxa. Shared charger/hub power or data wiring remains unresolved pending the user's photo. Do not claim a faulty dongle or install keyboard drivers based on current evidence.
 
 - Composer footer: wide 330px SEND at the lower right, with 80px LF/BS/Home/End/Del. No keyboard toggle in the composer. The lower-panel QUICK TEXT/KEYBOARD heading is the switch, with matching 350x44px controls in the same position in both views. Keep editor geometry and fonts unchanged.
+
+- Keyboard is a fixed 15-unit staggered QWERTY layout, five 72px rows, with centered 5-unit Space, Tab/Caps/Shift, punctuation and navigation. Do not stretch each row independently. Select… opens a touch line picker and preview with precise Start/End adjustments, without changing the composer size. Line selection is contiguous, not disjoint. Native drag selection remains available.
+
+- Keyboard header offers English / فارسی / Symbols character layers. Farsi is local composition only for now: current Bluetooth US-layout encoder rejects unsupported Unicode. Do not claim Farsi Send works until a host-layout strategy is implemented and tested. Composer/selection preview use dir=auto; do not change font-size presets or geometry.

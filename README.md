@@ -149,3 +149,13 @@ After requesting shutdown, keep power connected until the Radxa finishes powerin
 ## Composer Send layout
 
 SEND occupies the wide lower-right composer footer. LF/BS/Home/End/Del have wider targets. Tap **QUICK TEXT ⇄ Keyboard** in the lower-panel heading to show the keyboard; tap **KEYBOARD ⇄ Quick Text** in that same location to return. The editor, fonts, upper panels and 48-button grid retain their previous dimensions. Switching preserves focus and selection.
+
+
+## Touch selection and keyboard layout
+
+Keyboard now follows fixed staggered 15-unit QWERTY rows and a centered Space bar. Caps, Shift, punctuation, Tab and local navigation edit the composer; they do not directly control the PC. The keyboard still covers the same fixed lower panel.
+
+Tap Select… beside the composer. Tap a numbered line to select it; tap it again to collapse its highlight. Use Start/End arrows to fine-tune the preview (hold to repeat), then Use selection. Cancel restores the previous selection. Lines are newline-delimited; selecting a line includes its following newline when present. One contiguous selection is supported, rather than disjoint selected lines. Start/End steps use grapheme boundaries when supported, preserving emoji/combining characters. Copy, Cut and hold-to-save Quick Text use the applied selection. Native dragging remains available, with selectionchange tracking. Editor dimensions and approved fonts remain unchanged.
+
+
+The keyboard header now offers English, فارسی, and Symbols. Farsi is a local character layer with automatic text direction; Shift+Space inserts a zero-width non-joiner. It does not switch the Windows input language. Current Bluetooth Send rejects Farsi Unicode instead of silently sending incorrect text; host-layout-aware Farsi transmission remains separate work. ASCII Symbols work with the existing US-layout sender.

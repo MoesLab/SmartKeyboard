@@ -3,6 +3,9 @@ const editor = document.querySelector('#editor');
 const keyboard = document.querySelector('#keyboard');
 const status = document.querySelector('#status');
 let shifted = false;
+let capsLocked = false;
+let keyboardLanguage='en';
+try{const saved=localStorage.getItem('smartKeyboard.keyboardLanguage');if(['en','fa','symbols'].includes(saved))keyboardLanguage=saved;}catch{}
 let selection = [0, 0];
 function remember() { selection = [editor.selectionStart, editor.selectionEnd]; }
 function focusEditor() {
@@ -12,6 +15,8 @@ function focusEditor() {
   selection = range;
 }
 for (const event of ['select', 'keyup', 'click', 'input', 'blur']) editor.addEventListener(event, remember);
+document.addEventListener('selectionchange',()=>{if(document.activeElement===editor)remember();});
+editor.addEventListener('pointerup',()=>requestAnimationFrame(remember));
 function insert(text) {
   editor.focus({ preventScroll: true });
   editor.setSelectionRange(...selection);
@@ -45,21 +50,38 @@ document.addEventListener('visibilitychange', stopRepeat);
 function render() {
   stopRepeat();
   keyboard.replaceChildren();
+  const one=keys=>[...keys].map(key=>[key,1]);
+  // Standard 15-unit staggered rows; all five rows keep the same dimensions.
   const rows = [
-    ['1','2','3','4','5','6','7','8','9','0','Backspace'],
-    [...'qwertyuiop'],
-    [...'asdfghjkl','Enter'],
-    ['Shift', ...'zxcvbnm', '.', ','],
-    ['Space', '?', '!', "'", '-']
+    [...one('`1234567890-='),['Backspace',2]],
+    [['Tab',1.5],...one('qwertyuiop[]'),['\\',1.5]],
+    [['Caps',1.75],...one("asdfghjkl;'"),['Enter',2.25]],
+    [['Shift',2.25],...one('zxcvbnm,./'),['Shift',2.75]],
+    [['Home',1.5],['End',1.5],['Left',1],['Up',1],['Space',5],['Down',1],['Right',1],['Del',1.5],['Enter',1.5]]
   ];
+  const shiftedSymbols={"1": "!", "2": "@", "3": "#", "4": "$", "5": "%", "6": "^", "7": "&", "8": "*", "9": "(", "0": ")", "`": "~", "-": "_", "=": "+", "[": "{", "]": "}", "\\": "|", ";": ":", "'": "\"", ",": "<", ".": ">", "/": "?"};
+  const faMap={"q": "ض", "w": "ص", "e": "ث", "r": "ق", "t": "ف", "y": "غ", "u": "ع", "i": "ه", "o": "خ", "p": "ح", "[": "ج", "]": "چ", "\\": "پ", "a": "ش", "s": "س", "d": "ی", "f": "ب", "g": "ل", "h": "ا", "j": "ت", "k": "ن", "l": "م", ";": "ک", "'": "گ", "z": "ظ", "x": "ط", "c": "ز", "v": "ر", "b": "ذ", "n": "د", "m": "ئ", ",": "و", ".": ".", "/": "؟"};
+  const faShift={c:'ژ',',':'،',';':'؛','/':'؟'};
+  const symbolMap={"q": "@", "w": "#", "e": "$", "r": "%", "t": "&", "y": "*", "u": "(", "i": ")", "o": "[", "p": "]", "[": "{", "]": "}", "a": "+", "s": "-", "d": "=", "f": "_", "g": "/", "h": "\\", "j": "|", "k": ":", "l": ";", ";": "'", "'": "\"", "z": "!", "x": "?", "c": "<", "v": ">", "b": "~", "n": "`", "m": "^"};
+  const textForKey=key=>{
+    if(keyboardLanguage==='fa')return shifted?(faShift[key]||shiftedSymbols[key]||faMap[key]||key):(faMap[key]||key);
+    if(keyboardLanguage==='symbols')return symbolMap[key]||(shifted?(shiftedSymbols[key]||key):key);
+    return /^[a-z]$/.test(key)?((shifted!==capsLocked)?key.toUpperCase():key):(shifted?(shiftedSymbols[key]||key):key);
+  };
+  keyboard.dataset.language=keyboardLanguage;
+  document.querySelectorAll('[data-keyboard-language]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.keyboardLanguage===keyboardLanguage)));
+  document.querySelector('#keyboard-note').textContent=keyboardLanguage==='fa'?'فارسی · Editor only; Bluetooth Farsi Send not implemented':'HOLD BACKSPACE TO REPEAT';
+  const arrowLabels={Left:'←',Right:'→',Up:'↑',Down:'↓'};
   for (const keys of rows) {
     const row = document.createElement('div'); row.className = 'row';
-    for (const key of keys) {
+    for (const [key,units] of keys) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = key.length === 1 && shifted ? key.toUpperCase() : key;
+      button.textContent = key==='Space'&&keyboardLanguage==='fa'&&shifted?'نیم‌فاصله':arrowLabels[key] || (key.length===1?textForKey(key):key);
+      button.dataset.key=key;button.style.gridColumn=`span ${units*4}`;
       if (key.length > 1) button.className = key === 'Space' ? 'space' : 'wide';
       if (key === 'Shift') button.setAttribute('aria-pressed', String(shifted));
+      if (key === 'Caps') button.setAttribute('aria-pressed', String(capsLocked));
       button.addEventListener('pointerdown', event => {
         event.preventDefault();
         if (key !== 'Backspace' || !event.isPrimary || event.button !== 0) return;
@@ -77,17 +99,44 @@ function render() {
       button.addEventListener('contextmenu', event => event.preventDefault());
       button.addEventListener('click', event => {
         if (key === 'Shift') { shifted = !shifted; render(); focusEditor(); }
+        else if(key==='Caps'){capsLocked=!capsLocked;render();focusEditor();}
         // Pointer presses delete on pointerdown; keyboard activation uses click.
         else if (key === 'Backspace') { if (event.detail === 0) backspace(); }
-        else insert(key === 'Space' ? ' ' : key === 'Enter' ? '\n' : shifted ? key.toUpperCase() : key);
+        else if(['Home','End','Left','Right','Up','Down','Del'].includes(key))moveKeyboardCaret(key);
+        else insert(key === 'Space' ? (keyboardLanguage==='fa'&&shifted?'\u200c':' ') : key === 'Enter' ? '\n' : key==='Tab'?'\t':textForKey(key));
       });
       row.append(button);
     }
     keyboard.append(row);
   }
 }
+function moveKeyboardCaret(key){
+  let [start,end]=selection;const text=editor.value;
+  if(key==='Del'){
+    if(start===end)selection[1]+=Array.from(text.slice(end))[0]?.length||0;
+    insert('');return;
+  }
+  if(key==='Left')start=start!==end?start:Math.max(0,start-(Array.from(text.slice(0,start)).pop()?.length||0));
+  if(key==='Right')start=start!==end?end:end+(Array.from(text.slice(end))[0]?.length||0);
+  if(key==='Home')start=start===0?0:text.lastIndexOf('\n',start-1)+1;
+  if(key==='End'){const next=text.indexOf('\n',end);start=next<0?text.length:next;}
+  if(key==='Up'||key==='Down'){
+    const cursor=key==='Up'?start:end;const lineStart=cursor===0?0:text.lastIndexOf('\n',cursor-1)+1;
+    const column=cursor-lineStart;
+    if(key==='Up'){
+      const previousEnd=Math.max(0,lineStart-1);const previousStart=previousEnd===0?0:text.lastIndexOf('\n',previousEnd-1)+1;
+      start=Math.min(previousStart+column,previousEnd);
+    }else{
+      const lineEnd=text.indexOf('\n',cursor);
+      if(lineEnd<0)start=text.length;
+      else{const nextStart=lineEnd+1;const nextEnd=text.indexOf('\n',nextStart);start=Math.min(nextStart+column,nextEnd<0?text.length:nextEnd);}
+    }
+  }
+  selection=[start,start];focusEditor();
+}
 document.querySelector('#select-all').addEventListener('click', () => {
-  editor.focus(); editor.select(); remember();
+  if(window.smartKeyboardSelection){window.smartKeyboardSelection.open();return;}
+  editor.focus();editor.select();remember();
 });
 document.querySelector('#copy-text').addEventListener('click', async () => {
   const text = selection[0] !== selection[1] ? editor.value.slice(...selection) : editor.value;
@@ -113,6 +162,15 @@ for (const id of ['toggle-keyboard', 'hide-keyboard']) {
 document.querySelector('#toggle-keyboard').addEventListener('click', () => setKeyboardVisible(document.querySelector('#keyboard-panel').hidden));
 document.querySelector('#hide-keyboard').addEventListener('click', () => setKeyboardVisible(false));
 document.querySelector('#toggle-keyboard').setAttribute('aria-controls', 'keyboard-panel');
+document.querySelectorAll('[data-keyboard-language]').forEach(button=>{
+  button.addEventListener('pointerdown',event=>event.preventDefault());
+  button.addEventListener('click',()=>{
+    keyboardLanguage=button.dataset.keyboardLanguage;shifted=false;capsLocked=false;
+    try{localStorage.setItem('smartKeyboard.keyboardLanguage',keyboardLanguage);}catch{}
+    render();focusEditor();
+    if(keyboardLanguage==='fa')status.textContent='Farsi composes locally. Bluetooth Farsi Send still needs Windows layout support.';
+  });
+});
 function updateClock() {
   document.querySelector('#clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
