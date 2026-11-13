@@ -32,7 +32,7 @@ document.querySelectorAll('[data-headset-volume]').forEach(button=>button.addEve
  headsetAudioBusy=true;renderHeadsetAudio();
  try{
   headsetAudioState=await bluetoothRequest('/api/audio-volume',{kind,name:device.name,volume:Number(button.dataset.headsetVolume)});
-  headsetAudioMessage.textContent=(kind==='output'?'Headset listening':'Microphone')+' level updated.';
+  headsetAudioMessage.textContent=headsetAudioState.warning||(kind==='output'?'Headset listening':'Microphone')+' level updated.';
  }catch(error){headsetAudioState=null;headsetAudioMessage.textContent=error.message;}
  finally{headsetAudioBusy=false;renderHeadsetAudio();}
 }));

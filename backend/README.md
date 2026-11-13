@@ -149,3 +149,44 @@ only while the check is active. Closing Settings/collapsing the section/hiding t
 page stops it, and a five-second backend keepalive deadline cleans up capture if the
 page disappears. Backend shutdown also stops capture. No audio profile switches,
 service changes or automatic microphone activation are introduced.
+
+
+### Persist the user-tested SCO module and OpenComm2 startup setup
+
+Run sudo python3 scripts/persist-headset-setup.py /full/path/to/test/aic_btusb.ko
+only after the test module is loaded and listening/microphone checks work. Preflight
+requires the candidate's kernel/name/BlueZ dependency and srcversion to match the
+running module, a patch marker/provenance file, the existing project depmod override,
+and an exposed OpenComm2 microphone. It snapshots the current headset gains/mutes.
+
+The installer backs up affected files under /var/lib/smartkeyboard-bluetooth/driver-backups,
+atomically replaces only the project's custom module, runs depmod and verifies the
+selected path/version. If a versioned initramfs contains an AIC Bluetooth module,
+it is backed up and refreshed for this kernel only; missing inspection tools or
+unrecognized layouts stop installation. This does not reload the running driver.
+Failures restore saved files. Packaged Wi-Fi/BT modules and EZ Signage are untouched.
+
+A separate smartkeyboard-headset-restore.service runs as the desktop user at startup.
+It does not block graphical startup. It waits at most 90 seconds for the tested driver,
+PulseAudio and headset, then follows the successful A2DP-to-headset transition, with
+at most two voice-profile attempts. It restores saved listening/microphone levels.
+No pairing removal, Bluetooth radio reset, HDMI default change or permanent retry loop
+is performed. Keep the headset on and release its PC audio connection for boot testing;
+Windows Bluetooth can stay on for HID. If the headset was off at boot, run:
+sudo systemctl restart smartkeyboard-headset-restore
+
+Verify after reboot using cat /sys/module/aic_btusb/srcversion and the module file's
+modinfo srcversion, then test headset audio/meter and actual PC SEND. Do not call
+persistence hardware-verified until that reboot test succeeds. Future kernels need
+a matching rebuilt/tested module. Service logs:
+sudo journalctl -u smartkeyboard-headset-restore -n 40 --no-pager
+
+To disable automatic voice restore without changing the driver:
+sudo systemctl disable --now smartkeyboard-headset-restore
+For driver rollback, turn the headset off first, disable the restore service, and
+restore the module/depmod configuration (and initramfs if applicable) from the root-owned
+backup manifest before depmod/reboot. The currently running module is not reloaded by
+file restoration. Do not enable microphone mode again with the old crashing module.
+Replacement-headset scan/pair/select UI is deferred to a later update at user request.
+
+After persistence is enabled, successful Settings gain changes also update the saved headset startup levels atomically. If saving fails, the UI reports that the live gain changed but startup saving failed. Audio mute/profile/driver identity fields are preserved.

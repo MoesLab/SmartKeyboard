@@ -1,6 +1,8 @@
 """PulseAudio headset gain only: never changes profiles, routes or services."""
 import os
 import io
+import json
+import tempfile
 import math
 import select
 import signal
@@ -32,6 +34,7 @@ def parse_devices(output, kind):
 
 class HeadsetAudio:
     def __init__(self,app_home,runner=None):
+        self.startup_config=Path(app_home)/'config/headset-startup.json' if app_home else None
         self.session_prefix=None;self.meter_lock=threading.Lock();self.meter_process=None
         self.meter_deadline=0;self.meter_level=0;self.meter_db=-60;self.meter_message='Microphone level check stopped.'
         if runner is not None:
@@ -73,7 +76,28 @@ class HeadsetAudio:
         if not any(device['name']==name for device in available):
             raise ValueError('The selected headset endpoint is unavailable. Refresh audio controls.')
         self.run(['set-sink-volume' if kind=='output' else 'set-source-volume',name,str(volume)+'%'])
-        return self.status()
+        result=self.status()
+        try:self.save_startup_gain(kind,volume)
+        except (OSError,ValueError,KeyError,TypeError):result['warning']='Level changed, but startup saving failed. Keep the current session and check headset-startup.json.'
+        return result
+
+    def save_startup_gain(self,kind,volume):
+        path=self.startup_config
+        if path is None or not path.exists():return
+        if path.is_symlink() or path.parent.is_symlink() or path.stat().st_size>10000:raise ValueError('Unexpected startup configuration.')
+        settings=json.loads(path.read_text())
+        if not isinstance(settings,dict) or settings.get('version')!=1 or settings.get('address')!='C0:86:B3:F2:E8:96' or settings.get('profile')!='headset_head_unit':raise ValueError('Unrecognized headset startup configuration.')
+        if kind not in settings or not isinstance(settings[kind],dict):raise ValueError('Missing saved headset level.')
+        settings[kind]['volume']=volume
+        owner=path.stat();fd,temporary=tempfile.mkstemp(prefix='.headset-level-',dir=str(path.parent))
+        try:
+            with os.fdopen(fd,'w') as stream:
+                json.dump(settings,stream,indent=2);stream.flush();os.fsync(stream.fileno())
+                if hasattr(os,'fchown'):os.fchown(stream.fileno(),owner.st_uid,owner.st_gid)
+            os.replace(temporary,str(path))
+        finally:
+            if os.path.exists(temporary):os.unlink(temporary)
+
 
 
     def play_test(self,data):

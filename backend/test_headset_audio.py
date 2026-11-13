@@ -60,6 +60,17 @@ class HeadsetAudioTests(unittest.TestCase):
             with self.assertRaises(ValueError):helper.set_volume(data)
             self.assertFalse(any(call.args[0][0].startswith('set-') for call in runner.call_args_list))
 
+    def test_saved_startup_gain_is_updated_without_changing_profile(self):
+        import tempfile,json
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            helper,_=self.helper();helper.startup_config=Path(directory)/'headset-startup.json'
+            settings={'version':1,'address':'C0:86:B3:F2:E8:96','profile':'headset_head_unit','kernel':'test','srcversion':'TEST','output':{'volume':50,'muted':False},'input':{'volume':75,'muted':False}}
+            helper.startup_config.write_text(json.dumps(settings))
+            helper.set_volume({'kind':'input','name':'bluez_source.C0_86_B3_F2_E8_96.headset_head_unit','volume':25})
+            saved=json.loads(helper.startup_config.read_text());self.assertEqual(saved['input']['volume'],25)
+            self.assertEqual(saved['output'],settings['output']);self.assertEqual(saved['srcversion'],'TEST')
+
     def test_missing_microphone_does_not_switch_profiles(self):
         runner=Mock(side_effect=lambda args:SINKS if args==['list','sinks'] else '')
         helper=HeadsetAudio(None,runner)
