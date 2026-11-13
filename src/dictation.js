@@ -7,7 +7,7 @@ let dictationBusy=false,dictationSession='',dictationPolling=false,dictationStar
 const dictateButton=document.querySelector('#dictation-toggle');
 const dictationMeter=document.querySelector('#dictation-level');
 function renderDictation(){
- dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):dictationMode==='cloud'?'Cloud setup':dictationAvailable?'Dictate':'STT setup';
+ dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):dictationMode==='cloud'?'Cloud setup':'Dictate';
  dictateButton.setAttribute('aria-pressed',String(dictationBusy));dictateButton.disabled=dictationStopRequested;
  dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Cloud is not configured. No audio is uploaded.':'Local English dictation; review before inserting. Model setup required.';
  for(const button of document.querySelectorAll('[data-dictation-mode]')){button.disabled=dictationBusy;button.setAttribute('aria-pressed',String(button.dataset.dictationMode===dictationMode));}
@@ -76,4 +76,4 @@ document.addEventListener('click',event=>{if(dictationBusy&&event.target.closest
 window.smartKeyboardDictation={active:()=>dictationBusy};
 renderDictation();
 
-bluetoothRequest('/api/dictation-status').then(state=>{dictationAvailable=state.localAvailable;renderDictation();}).catch(()=>{});
+bluetoothRequest('/api/dictation-status').then(state=>{dictationAvailable=state.localAvailable;renderDictation();}).catch(error=>{dictateButton.title='Dictation connection: '+error.message;});

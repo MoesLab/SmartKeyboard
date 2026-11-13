@@ -229,3 +229,6 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 #dictation-level { width:78px; height:18px; }
 #dictation-modes { position:absolute; right:110px; top:3px; display:flex; gap:6px; }
 #dictation-modes button { width:60px; height:38px; padding:3px; font-size:16px; }
+
+/* Reserve a font-independent title slot; do not move editor or controls. */
+.composer .panel-heading > h2 { flex:0 0 240.875px; width:240.875px; overflow:hidden; }
