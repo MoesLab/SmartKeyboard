@@ -255,8 +255,16 @@ class Controller:
         for interface in interfaces: self.objects.get(str(path),{}).pop(interface,None)
     def device_properties(self,path): return self.objects.get(path,{}).get(DEVICE,{})
 
+    @staticmethod
+    def audio_accessory(properties):
+        # Do not use audio UUIDs: Windows PCs can advertise those too.
+        try:major=(int(properties.get('Class',0))>>8)&0x1f
+        except (ValueError,TypeError):major=0
+        if major:return major==4  # Bluetooth Audio/Video major device class.
+        return str(properties.get('Icon','')) in ('audio-headset','audio-headphones','audio-speakers')
+
     def hosts(self):
-        return [(p,v[DEVICE]) for p,v in self.objects.items() if p.startswith(self.adapter+'/') and DEVICE in v and v[DEVICE].get('Connected') and v[DEVICE].get('Paired')]
+        return [(p,v[DEVICE]) for p,v in self.objects.items() if p.startswith(self.adapter+'/') and DEVICE in v and v[DEVICE].get('Connected') and v[DEVICE].get('Paired') and not self.audio_accessory(v[DEVICE])]
 
     def active_report(self): return self.boot_input if self.protocol==0 else self.input
 

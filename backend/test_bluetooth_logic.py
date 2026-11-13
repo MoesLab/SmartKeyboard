@@ -84,6 +84,22 @@ class BluetoothLogic(unittest.TestCase):
             with self.assertRaises(ValueError):item.handle('/api/send',{'text':'Hello','reportIntervalMs':speed})
             self.assertFalse(item.queue)
 
+    def test_headset_does_not_count_as_second_pc_or_stop_send(self):
+        item=controller();item.enqueue(keyboard.encode_text('abc'))
+        item.objects[item.adapter+'/dev_HEADSET']={keyboard.DEVICE:{'Connected':True,'Paired':True,'Class':0x240404,'Alias':'Shokz'}}
+        self.assertTrue(item.ready());item.tick();self.assertEqual(len(item.queue),5)
+        self.assertEqual(item.snapshot()['connectedHosts'],1)
+        item.objects[item.adapter+'/dev_PC'][keyboard.DEVICE]['Connected']=False
+        self.assertFalse(item.ready());item.tick();self.assertFalse(item.queue)
+        self.assertEqual(item.snapshot()['connectedHosts'],0)
+
+    def test_audio_icon_fallback_and_pc_audio_services(self):
+        for icon in ('audio-headset','audio-headphones','audio-speakers'):
+            self.assertTrue(keyboard.Controller.audio_accessory({'Icon':icon}))
+        self.assertFalse(keyboard.Controller.audio_accessory({'Class':0x100,'Icon':'audio-headset'}))
+        self.assertFalse(keyboard.Controller.audio_accessory({'UUIDs':[keyboard.uuid('110a'),keyboard.uuid('110b')]}))
+        self.assertFalse(keyboard.Controller.audio_accessory({}))
+
     def test_zero_or_multiple_hosts_cannot_send(self):
         for kind in ('unpaired','multiple','unsubscribed'):
             item=controller()
