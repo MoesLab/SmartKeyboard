@@ -81,3 +81,32 @@ These files contain your saved text; keep them somewhere appropriate.
 Settings Send speed applies 15/10/5ms report pacing to the next text or macro request (~33/50/100 characters per second). The authenticated send payload optionally carries reportIntervalMs. It is validated before queueing and cannot alter an active send. Without a preference the backend CLI interval is preserved. The browser preference survives reloads and backups; reconnect does not trigger a send. These are target rates, not guarantees; use 15ms if characters are missed. Backend reinstallation is required for this control.
 
 Audio coexistence: paired audio/video-class devices (or headset/headphone/speaker icons when Class is absent) are excluded from keyboard host counting. Computer-class and unknown legacy PC devices remain eligible, even with audio service UUIDs. This preserves the single-target guard for PCs. Headset pairing, audio routing and microphone profile support are separate; this patch does not install audio modules or alter audio, display or signage services. Devices with no class/icon metadata still need inspection.
+
+### Experimental headset microphone crash investigation
+
+OpenComm2 A2DP playback and BLE keyboard coexistence were user-confirmed. Switching
+to headset_head_unit twice caused loss of GUI/SSH. Captured logs showed sco_num:2,
+unsupported multiple CVSD links, send failure -19, then a kernel NULL dereference.
+The complete fault stack was not captured, so the exact fault site is unproven.
+The user's copied driver defines SCO_NUM as hdev->conn_hash.sco_num and manually
+increments/decrements it despite CONFIG_BLUEDROID=0. Linux already owns that
+counter. Its SCO send errors also call kfree(skb) before returning an error, while
+Linux hci_send_frame frees the returned failed packet. Both are concrete ownership
+mismatches and plausible contributors, not a hardware-verified crash fix.
+
+scripts/prepare-bluetooth-sco-test.py accepts the working copied build directory,
+validates expected source patterns, copies into a fresh ~/SmartKeyboard/bt-sco-test-*
+directory and guards vendor counter writes and the two SCO error-path frees behind
+CONFIG_BLUEDROID. It preserves the original source and installed module, saves a
+reviewable diff and provenance hashes, then builds for the running Radxa kernel.
+No sudo, module unload, installation, service change or headset profile switch occurs.
+Use --prepare-only for source inspection without compiling. The source-transform
+unit tests and full upstream-source transform passed on PC; Radxa compilation and
+hardware microphone behavior are still pending. Do not bypass the unsupported-link
+check or force the counter to one. Preserve the working BLE driver and 15ms fallback.
+
+References:
+- https://github.com/radxa-pkg/aic8800/blob/main/src/USB/driver_fw/drivers/aic_btusb/aic_btusb.c
+- https://github.com/radxa-pkg/aic8800/blob/main/src/USB/driver_fw/drivers/aic_btusb/aic_btusb.h
+- https://github.com/torvalds/linux/blob/v5.15/include/net/bluetooth/hci_core.h
+- https://github.com/torvalds/linux/blob/v5.15/net/bluetooth/hci_core.c
