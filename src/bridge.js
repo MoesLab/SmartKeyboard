@@ -62,7 +62,7 @@ function renderBluetooth(){
   }
   btButton.textContent=state?.ready?'● BT connected':state?.registered?'◉ Bluetooth':'○ BT offline';
   btButton.setAttribute('aria-label',state?.ready?'Bluetooth connected to '+state.host:'Bluetooth connection settings');
-  document.querySelector('#send-text').disabled=bluetoothSending||!!state?.queuedReports;
+  document.querySelector('#send-text').disabled=bluetoothSending||!!state?.queuedReports||!!window.smartKeyboardDictation?.active();
   if(!window.inspectSmartKeyboardText?.(editor.value))document.querySelector('#send-text').title=state?.ready?'Send whole composer text to '+state.host:'Open Bluetooth settings to check the PC connection';
   const connection=state?.connection||(state?.ready?'ready':state?.registered?'waiting':'offline');
   if(previousConnection&&previousConnection!==connection){

@@ -219,3 +219,13 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 #headset-mic-meter-text { display:block; font-size:16px; margin-top:6px; color:var(--cyan); }
 #headset-mic-meter::-webkit-meter-bar { background:#06121c; border:1px solid var(--cyan); border-radius:4px; }
 #headset-mic-meter::-webkit-meter-optimum-value { background:linear-gradient(90deg,#168c99,#49dc9d); }
+
+/* Only unused header space is occupied; all existing controls retain their geometry. */
+.composer .panel-heading { position:relative; }
+#composer-audio-controls { position:absolute; left:260px; top:3px; height:38px; display:flex; align-items:center; gap:6px; }
+#composer-audio-controls button { height:38px; font-size:17px; padding:3px; }
+#composer-audio-open { width:66px; }
+#dictation-toggle { width:104px; }
+#dictation-level { width:78px; height:18px; }
+#dictation-modes { position:absolute; right:110px; top:3px; display:flex; gap:6px; }
+#dictation-modes button { width:60px; height:38px; padding:3px; font-size:16px; }

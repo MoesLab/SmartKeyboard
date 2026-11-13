@@ -24,6 +24,7 @@ import dbus.service
 from gi.repository import GLib
 from hid_keys import REPORT_MAP, RELEASE, encode_text, encode_shortcuts
 from headset_audio import HeadsetAudio
+from local_dictation import LocalDictation
 
 PROPS='org.freedesktop.DBus.Properties'
 OM='org.freedesktop.DBus.ObjectManager'
@@ -404,7 +405,17 @@ class Controller:
         if route=='/api/cancel-send':
             if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
             return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
+        if route in ('/api/dictation-status','/api/dictation-start','/api/dictation-stop'):
+            if not hasattr(self,'dictation'):
+                if not hasattr(self,'audio_home'):raise ValueError('Reinstall the backend for local dictation support.')
+                if not hasattr(self,'audio'):self.audio=HeadsetAudio(self.audio_home)
+                self.dictation=LocalDictation(self.audio_home,self.audio)
+            if route=='/api/dictation-status':return self.dictation.snapshot()
+            if route=='/api/dictation-stop':return self.dictation.stop()
+            if self.queue:raise ValueError('Wait for sending to finish before starting dictation.')
+            return self.dictation.start(data)
         if route in ('/api/audio-status','/api/audio-volume','/api/audio-test','/api/audio-meter-start','/api/audio-meter-status','/api/audio-meter-stop'):
+            if route in ('/api/audio-meter-start','/api/audio-test') and hasattr(self,'dictation') and self.dictation.process is not None:raise ValueError('Stop dictation before a separate headset test.')
             if self.queue and route not in ('/api/audio-meter-status','/api/audio-meter-stop'):raise ValueError('Wait for sending to finish before adjusting headset audio.')
             if not hasattr(self,'audio'):
                 if not hasattr(self,'audio_home'):raise ValueError('Audio controls unavailable; reinstall the backend.')
@@ -524,6 +535,7 @@ def main():
     signal.signal(signal.SIGTERM,shutdown);signal.signal(signal.SIGINT,shutdown)
     try: loop.run()
     finally:
+        if hasattr(controller,'dictation'):controller.dictation.close()
         if hasattr(controller,'audio'):controller.audio.stop_meter()
         controller.agent.resolve(False);controller.close_pairing()
         controller.input.emit(RELEASE);controller.boot_input.emit(RELEASE)

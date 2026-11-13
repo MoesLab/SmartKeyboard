@@ -49,7 +49,7 @@ window.smartKeyboardTransport.sendText=checkedSendText;
 setInterval(refreshSendFeedback,250);refreshSendFeedback();
 
 const backupKeys=new Set([
-  'smartKeyboard.workspaceLibrary','smartKeyboard.transferIntervalMs','smartKeyboard.toneVolume','smartKeyboard.appearance.v1','smartKeyboard.sharedDraft.v2','smartKeyboard.quickText.v2','smartKeyboard.pageKeyMacros.v2',
+  'smartKeyboard.dictationMode','smartKeyboard.workspaceLibrary','smartKeyboard.transferIntervalMs','smartKeyboard.toneVolume','smartKeyboard.appearance.v1','smartKeyboard.sharedDraft.v2','smartKeyboard.quickText.v2','smartKeyboard.pageKeyMacros.v2',
   'smartKeyboard.composerSize','smartKeyboard.keyTone','smartKeyboard.keyboardLanguage',
   'smartKeyboard.drafts.v1','smartKeyboard.quickText.v1','smartKeyboard.textMacros.v1','smartKeyboard.keyMacros.v1'
 ]);
@@ -88,6 +88,7 @@ function validateBackup(backup){
     let valid=true;
     if(key==='smartKeyboard.sharedDraft.v2')valid=value.length<=100000;
     else if(key==='smartKeyboard.composerSize')valid=['20','27','34'].includes(value);
+    else if(key==='smartKeyboard.dictationMode')valid=['local','cloud'].includes(value);
     else if(key==='smartKeyboard.workspaceLibrary')valid=value==='workspace-library-v1';
     else if(key==='smartKeyboard.transferIntervalMs')valid=['5','10','15'].includes(value);
     else if(key==='smartKeyboard.toneVolume')valid=['25','50','75','100'].includes(value);

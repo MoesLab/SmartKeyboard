@@ -190,3 +190,59 @@ file restoration. Do not enable microphone mode again with the old crashing modu
 Replacement-headset scan/pair/select UI is deferred to a later update at user request.
 
 After persistence is enabled, successful Settings gain changes also update the saved headset startup levels atomically. If saving fails, the UI reports that the live gain changed but startup saving failed. Audio mute/profile/driver identity fields are preserved.
+
+
+### English offline dictation trial (local hardware benchmark required)
+
+The composer header uses previously empty space for Audio, Dictate/Stop, signal meter,
+and Local/Cloud mode. Existing title, S/M/L, workspace label, editor, macros, keyboard
+and Quick Text geometry are unchanged (compared against pre-STT browser measurements).
+Cloud is a setup placeholder only: no provider, keys, network recognition or audio
+upload is implemented. Selecting it cannot open a microphone or send audio remotely.
+
+Before deploying new code, run the new source's scripts/stt-checkpoint.py as radxa.
+It backs up deployed src/backend/scripts under a private ~/SmartKeyboard/backups/pre-stt-*
+directory, including bridge-config.js. Do not publish that checkpoint. It deliberately
+excludes profiles, saved browser data, models, drivers and services. The Git checkpoint
+tag pre-stt-2026-11-12 points to fc5102f. The code checkpoint restore command is printed
+when saved; after restoring, re-run the restored backend installer and restart-kiosk.sh.
+Stop dictation before rolling back. Extra unreferenced model/worker files can stay on
+disk; the restored old backend does not import or start them. No git reset is needed.
+
+Run python3 ~/SmartKeyboard/scripts/install-local-stt.py as radxa (not sudo). It requires
+1 GiB free disk and 512 MiB currently available RAM, creates only ~/SmartKeyboard/.venv-stt,
+installs Vosk 0.3.45 there, and downloads the official small English US 0.15 model (40 MB
+archive) and an official sample WAV. If Debian venv support is absent, install python3-venv
+and retry. Initial setup needs Internet; recognition itself uses only local model files.
+No microphone is opened for the benchmark. Downloaded ZIP entries are validated before
+extraction. This does not install system Python packages, Torch, GPU/NPU drivers or alter
+EZ Signage. Model/native libraries are never imported by the Bluetooth GLib process.
+
+The benchmark pins its worker to one available CPU core with lower priority and one
+BLAS/OpenMP thread. It reports model load time, recognition wall time, audio length,
+real-time factor and peak process memory. Local is enabled only if real-time factor <=1;
+otherwise the model remains installed but disabled. An explicit --allow-slow setup rerun
+can opt into a slower result. Performance/accuracy on Radxa and its narrowband Shokz
+microphone remain hardware tests, not promises derived from desktop tests. The 8kHz
+voice stream is requested as 16kHz PCM through PulseAudio; resampling does not recover
+lost audio bandwidth. The first model is English only, with basic unpunctuated output.
+
+Dictate spawns a separate unprivileged worker; it has no idle model memory. The worker
+loads the explicit local model, opens only the confirmed Shokz source, listens for at
+most 60 seconds, and emits partial/final JSON over a pipe. Audio is discarded in memory;
+recognized text is temporarily kept in memory until another session/service restart.
+No audio file is saved or sent to a recognition service. A five-second UI lease, stop
+handling, hard duration cap and service cleanup bound capture lifetime. Headset meter
+and dictation are mutually exclusive; the exact persisted/tested driver must match
+before microphone use. At least 512 MiB current memory headroom is required at start.
+
+Stop opens the themed review dialog. Insert replaces the captured selection if the
+draft is unchanged; if the user edited the draft, it uses the current selected position.
+Cancel leaves the draft unchanged. No recognized text is automatically sent to a PC.
+SEND and shutdown are blocked while dictation is active; sleep is deferred. Models
+are released by worker exit after Stop. Local/cloud preference is validated in backups.
+
+References:
+- https://alphacephei.com/vosk/models
+- https://alphacephei.com/vosk/install
+- https://github.com/alphacep/vosk-api/blob/master/python/example/test_simple.py

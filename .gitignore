@@ -11,3 +11,8 @@ logs/
 bt-build-*/
 src/bridge-config.js
 __pycache__/
+
+.venv-stt/
+models/
+config/local-stt.json
+config/headset-startup.json

@@ -12,6 +12,7 @@ let lastActivity=Date.now(),screenAsleep=false,sleepSelection=null;
 const sleepOverlay=document.querySelector('#screen-saver');
 function updateSleepIndicator(){ document.querySelector("#sleep-clock").textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); document.querySelector("#sleep-connection").textContent=bluetoothState?.ready?"Bluetooth connected":"Bluetooth waiting / offline"; }
 function sleepScreen(){
+ if(window.smartKeyboardDictation?.active()){status.textContent='Stop dictation before sleeping.';if(settingsOpen)settingsMessage.textContent='Stop dictation before sleeping.';return;}
  if(screenAsleep||finishConfirmation||bluetoothPanelOpen||shutdownRequested||window.smartKeyboardSelection?.isOpen()||bluetoothSending||bluetoothState?.queuedReports||bluetoothState?.pairingSeconds)return;
  if(settingsOpen)setSettingsOpen(false);
  remember();saveDraft();stopRepeat();sleepSelection=[...selection];screenAsleep=true;
