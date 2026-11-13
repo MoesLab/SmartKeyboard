@@ -104,6 +104,33 @@ class PairingTests(unittest.TestCase):
         self.assertEqual(controller.snapshot()['text'],'hello')
         self.assertEqual(controller.snapshot()['state'],'done')
 
+
+    def test_stop_signal_microphone_eof_still_transcribes_recording(self):
+        import zima_dictation_worker as worker
+        process=Mock();process.stdout.fileno.return_value=42
+        reads=0
+        def ready(*args):
+            nonlocal reads
+            reads+=1
+            if reads==2:worker.STOP=True
+            return ([process.stdout],[],[])
+        worker.STOP=False
+        try:
+            with patch('sys.argv',['worker','--config','private','--source','bluez_source.C0_86_B3_F2_E8_96.headset_head_unit']), \
+                 patch.object(worker,'load_pairing',return_value={}), \
+                 patch.object(worker,'request',side_effect=[{'ready':True},{'text':'hello world'}]) as request, \
+                 patch.object(worker.signal,'signal'), \
+                 patch.object(worker.subprocess,'Popen',return_value=process), \
+                 patch.object(worker.select,'select',side_effect=ready), \
+                 patch.object(worker.os,'read',side_effect=[b'\0\0'*100,b'']), \
+                 patch('sys.stdout',new_callable=io.StringIO) as output:
+                self.assertEqual(worker.main(),0)
+                events=[json.loads(line) for line in output.getvalue().splitlines()]
+                self.assertTrue(any(e.get('text')=='hello world' for e in events))
+                self.assertEqual(events[-1]['kind'],'done')
+                self.assertEqual(request.call_args.args[1],'/transcribe')
+        finally:worker.STOP=False
+
     @patch('zima_dictation_worker.subprocess.Popen')
     @patch('zima_dictation_worker.request',side_effect=OSError('offline'))
     @patch('zima_dictation_worker.load_pairing',return_value={})

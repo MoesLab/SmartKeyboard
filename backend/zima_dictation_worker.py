@@ -63,16 +63,19 @@ def main():
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     process = None
+    stage = 'pairing'
     try:
         data = load_pairing(args.config)
         if args.check:
             print(json.dumps(request(data, '/health', timeout=5))); return 0
         signal.signal(signal.SIGINT, stop); signal.signal(signal.SIGTERM, stop)
+        stage = 'connection'
         request(data, '/health', timeout=3)
         if STOP:
             emit('done', message='Stopped before capture.'); return 0
         if args.source != 'bluez_source.C0_86_B3_F2_E8_96.headset_head_unit':
             raise ValueError('Select the confirmed OpenComm2 microphone.')
+        stage = 'microphone'
         from headset_audio import measure_pcm
         process = subprocess.Popen(['parec', '--device=' + args.source, '--raw', '--format=s16le', '--rate=16000', '--channels=1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         emit('ready', message='Listening on Radxa · Stop to transcribe on ZimaBoard')
@@ -81,10 +84,12 @@ def main():
             readable, _, _ = select.select([process.stdout], [], [], 0.25)
             if not readable:
                 if process.poll() is not None:
+                    if STOP: break
                     raise ValueError('Microphone capture ended.')
                 continue
             chunk = os.read(process.stdout.fileno(), 6400)
             if not chunk:
+                if STOP: break
                 raise ValueError('Microphone capture ended. Check the headset.')
             pending += chunk
             length = min(len(pending) // 2 * 2, MAX_AUDIO - len(recording))
@@ -96,6 +101,7 @@ def main():
         process.terminate(); process.wait(timeout=2); process.stdout.close(); process = None
         if recording:
             emit('processing', message='Transcribing on your ZimaBoard · please wait', level=0)
+            stage = 'transcription'
             result = request(data, '/transcribe', bytes(recording))
             text = result.get('text')
             if not isinstance(text, str) or len(text) > 4000:
@@ -105,7 +111,7 @@ def main():
         return 0
     except Exception:
         # No private configuration, URL credentials, or audio in error messages.
-        emit('error', message='ZimaBoard dictation failed. Check its server, pairing file, and headset. Draft unchanged.')
+        emit('error', message='Dictation failed at '+stage+'. Check '+{'pairing':'the private pairing file','connection':'the ZimaBoard server and LAN connection','microphone':'the Shokz microphone in Audio settings','transcription':'the ZimaBoard server log'}[stage]+'. Draft unchanged.')
         return 1
     finally:
         if process is not None:
