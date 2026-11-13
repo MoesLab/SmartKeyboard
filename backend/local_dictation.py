@@ -7,6 +7,7 @@ import signal
 import subprocess
 import threading
 import time
+from zima_dictation_worker import load_pairing
 
 
 class LocalDictation:
@@ -15,6 +16,15 @@ class LocalDictation:
         self.state={'id':'','state':'idle','text':'','partial':'','level':0,'message':'Local English dictation is idle.'}
 
     def availability(self):
+        pairing=self.app/'config/zima-stt.json'
+        if pairing.exists():
+            try:
+                load_pairing(pairing)
+                return {'localAvailable':True,'cloudAvailable':False,'language':'en-US','engine':'zima',
+                        'setupMessage':'Local-network English recognition on your paired ZimaBoard.'}
+            except (OSError,ValueError,KeyError,TypeError):
+                return {'localAvailable':False,'cloudAvailable':False,'language':'en-US','engine':'zima',
+                        'setupMessage':'ZimaBoard pairing is disabled or invalid. Draft and keyboard are unchanged.'}
         python=self.app/'.venv-stt/bin/python';model=self.app/'models/vosk-model-small-en-us-0.15'
         ready=python.is_file() and (model/'am/final.mdl').is_file()
         message='Install the local English model and run its Radxa benchmark first.'
@@ -29,7 +39,7 @@ class LocalDictation:
 
     def snapshot(self,keepalive=True):
         with self.lock:
-            if keepalive and self.process is not None and self.state['state'] in ('loading','listening'):self.deadline=time.monotonic()+5
+            if keepalive and self.process is not None and self.state['state'] in ('loading','listening','processing'):self.deadline=time.monotonic()+5
             return dict(self.state,**self.availability())
 
     def start(self,data):
@@ -38,7 +48,7 @@ class LocalDictation:
         memory=Path('/proc/meminfo')
         if memory.exists():
             available=next((int(line.split()[1]) for line in memory.read_text().splitlines() if line.startswith('MemAvailable:')),0)
-            if available<512*1024:raise ValueError('Local dictation needs more free RAM. Keyboard and draft are unchanged.')
+            if self.availability().get('engine')!='zima' and available<512*1024:raise ValueError('Local dictation needs more free RAM. Keyboard and draft are unchanged.')
         with self.lock:
             if self.process is not None:raise ValueError('Dictation is already running.')
         try:
@@ -52,6 +62,9 @@ class LocalDictation:
         if self.audio.session_prefix is None:raise ValueError('Desktop audio session is unavailable.')
         self.audio.stop_meter()
         command=self.audio.session_prefix+[str(self.app/'.venv-stt/bin/python'),str(Path(__file__).with_name('local_dictation_worker.py')),'--model',str(self.app/'models/vosk-model-small-en-us-0.15'),'--source',source]
+        remote=self.availability().get('engine')=='zima'
+        if remote:
+            command=self.audio.session_prefix+['/usr/bin/python3',str(Path(__file__).with_name('zima_dictation_worker.py')),'--config',str(self.app/'config/zima-stt.json'),'--source',source]
         process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding='utf-8',bufsize=1,start_new_session=True)
         with self.lock:
             self.process=process;self.deadline=time.monotonic()+5;self.hard_deadline=time.monotonic()+90
@@ -89,7 +102,10 @@ class LocalDictation:
                 with self.lock:
                     if self.process is not process:break
                     kind=event.get('kind')
-                    if kind=='ready':self.state.update(state='listening',message='Listening locally · English · Stop to review')
+                    if kind=='ready':self.state.update(state='listening',message=event.get('message','Listening locally · English · Stop to review'))
+                    elif kind=='processing':
+                        self.state.update(state='processing',message=event.get('message','Transcribing locally…'),level=0)
+                        self.deadline=time.monotonic()+5;self.hard_deadline=time.monotonic()+100
                     elif kind=='final':
                         text=event.get('text','').strip()
                         if text:self.state['text']=(self.state['text']+' '+text).strip()[:4000]

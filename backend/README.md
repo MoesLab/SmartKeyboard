@@ -246,3 +246,79 @@ References:
 - https://alphacephei.com/vosk/models
 - https://alphacephei.com/vosk/install
 - https://github.com/alphacep/vosk-api/blob/master/python/example/test_simple.py
+
+
+## ZimaBoard local-network English trial
+
+User benchmark on CasaOS J3455: 8.308s sample / 3.292s recognition,
+RTF 0.396, peak 185.2MiB on one core. This is sample performance, not a
+headset accuracy guarantee. Radxa has insufficient headroom for on-device Vosk.
+No layout/CSS or Bluetooth driver changes are required for this trial.
+
+ZimaBoard setup already has Vosk 0.3.45 in
+`/mnt/camera-ssd/SmartKeyboard-STT/venv`, English model under `models/`,
+and test.wav. Use that environment, not system Python. From the source checkout:
+
+```bash
+git -C ~/SmartKeyboard-STT-test pull --ff-only
+/mnt/camera-ssd/SmartKeyboard-STT/venv/bin/python \
+  ~/SmartKeyboard-STT-test/backend/zima_stt_server.py \
+  --root /mnt/camera-ssd/SmartKeyboard-STT --init
+```
+
+Init runs openssl to create a one-year self-signed certificate for 192.168.0.16
+and localhost plus a random bearer token. It refuses to overwrite identities.
+Do not rerun init after success. Start explicitly (no boot service yet):
+
+```bash
+nohup /mnt/camera-ssd/SmartKeyboard-STT/venv/bin/python \
+  ~/SmartKeyboard-STT-test/backend/zima_stt_server.py \
+  --root /mnt/camera-ssd/SmartKeyboard-STT \
+  > /mnt/camera-ssd/SmartKeyboard-STT/server.log 2>&1 < /dev/null &
+echo $! > /mnt/camera-ssd/SmartKeyboard-STT/server.pid
+```
+
+Test the running encrypted endpoint before configuring Radxa:
+
+```bash
+/mnt/camera-ssd/SmartKeyboard-STT/venv/bin/python \
+  ~/SmartKeyboard-STT-test/backend/zima_stt_server.py \
+  --root /mnt/camera-ssd/SmartKeyboard-STT \
+  --check /mnt/camera-ssd/SmartKeyboard-STT/models/test.wav
+```
+
+Only source IP 192.168.0.17 and localhost may call the server; every request
+also needs its token. TLS certificate verification stays enabled. Port 8766
+is LAN-only; do not port-forward it. No firewall rules are changed by this code.
+One recognition at a time, <=60s raw mono 16kHz s16le PCM, bounded responses,
+no audio files, no text/token logging, no automatic request retry. Recognition
+holds the model in Zima RAM until this explicitly started process exits.
+
+Privately transfer ONLY SSD `zima-stt.json` using MobaXterm to Radxa
+`~/SmartKeyboard/config/zima-stt.json` (chmod 600). Never transfer server.key,
+paste the pairing file in chat, or commit it. Its certificate is the trusted
+server identity. Keep both LAN addresses reserved; changed IPs or expired TLS
+need a deliberate new pairing. Before deployment checkpoint the deployed code
+using stt-checkpoint.py. Then copy src/backend/scripts and run the project BLE
+installer; it installs the lightweight stdlib-only Radxa worker. Test reachability:
+
+```bash
+python3 ~/SmartKeyboard/backend/zima_dictation_worker.py \
+  --config ~/SmartKeyboard/config/zima-stt.json --check
+```
+
+The Local selector uses paired ZimaBoard when that file exists. Availability
+means configured, not an ongoing network probe; Dictate checks server health
+before opening the microphone. Invalid/disabled pairing does not silently
+fallback. Existing tested headset-driver identity and source checks still apply.
+Stop ends capture, sends at most 1.92MB from RAM, then enters processing.
+UI heartbeat/hard deadlines bound the worker and kill it on loss of control;
+no live words until the server replies. Review/Insert remain explicit, no HID.
+Cloud is still unconfigured. The 8kHz headset is resampled, not made higher quality.
+
+Rollback: stop dictation, move pairing OUT of config (preserve privately),
+restore the printed stt-checkpoint and rerun its BLE installer/restart instructions.
+No driver/model/browser data need removal. Stop Zima server with its verified PID
+(inspect `ps -p "$(cat /mnt/camera-ssd/SmartKeyboard-STT/server.pid)" -o args=`
+before `kill`); no service was installed. Future autostart is a separate step
+after actual headset/network success. Existing CasaOS apps and recordings are untouched.

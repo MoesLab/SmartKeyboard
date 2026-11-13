@@ -26,7 +26,7 @@ async function pollDictation(){
   const state=await bluetoothRequest('/api/dictation-status');
   if(state.id!==dictationSession)return;
   dictationMeter.value=state.level||0;
-  if(['loading','listening','stopping'].includes(state.state)){status.textContent=state.partial?`Hearing: ${state.partial}`:state.message;return;}
+  if(['loading','listening','stopping','processing'].includes(state.state)){status.textContent=state.partial?`Hearing: ${state.partial}`:state.message;return;}
   if(document.hidden||settingsOpen||bluetoothPanelOpen||finishConfirmation||window.smartKeyboardSelection?.isOpen())return;
   const text=((state.text||'')+(state.state==='error'&&state.partial?' '+state.partial:'')).trim();
   dictationSession='';dictationBusy=false;dictationStopRequested=false;clearInterval(dictationPollTimer);dictationPollTimer=null;dictationMeter.value=0;renderDictation();
@@ -52,7 +52,7 @@ dictateButton.addEventListener('click',async()=>{
    await confirmSave('Cloud recognition is not configured. No microphone will open and no audio will be uploaded. Local English is available after installing and benchmarking its small model.',{title:'Cloud dictation setup',confirmLabel:'OK'});focusEditor();return;
   }
   const available=await bluetoothRequest('/api/dictation-status');dictationAvailable=available.localAvailable;renderDictation();
-  if(!available.localAvailable){await confirmSave(available.setupMessage+'\n\nRun the local STT installer in MobaXterm. It benchmarks before enabling recognition; your existing keyboard remains usable.',{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
+  if(!available.localAvailable){await confirmSave(available.setupMessage+'\n\nConfigure the tested local engine in MobaXterm. ZimaBoard uses a private pairing file; on-device recognition requires its own benchmark. Your existing keyboard remains usable.',{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
   dictationStart={draft:editor.value,range:[...selection]};
   await stopMicMeter();
   const state=await bluetoothRequest('/api/dictation-start',{mode:'local'});

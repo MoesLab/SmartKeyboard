@@ -16,3 +16,8 @@ __pycache__/
 models/
 config/local-stt.json
 config/headset-startup.json
+
+# Private LAN speech pairing and TLS identities
+**/zima-stt.json
+**/server.key
+**/server.crt
