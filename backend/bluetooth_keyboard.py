@@ -404,12 +404,17 @@ class Controller:
         if route=='/api/cancel-send':
             if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
             return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
-        if route in ('/api/audio-status','/api/audio-volume'):
-            if self.queue:raise ValueError('Wait for sending to finish before adjusting headset audio.')
+        if route in ('/api/audio-status','/api/audio-volume','/api/audio-test','/api/audio-meter-start','/api/audio-meter-status','/api/audio-meter-stop'):
+            if self.queue and route not in ('/api/audio-meter-status','/api/audio-meter-stop'):raise ValueError('Wait for sending to finish before adjusting headset audio.')
             if not hasattr(self,'audio'):
                 if not hasattr(self,'audio_home'):raise ValueError('Audio controls unavailable; reinstall the backend.')
                 self.audio=HeadsetAudio(self.audio_home)
-            return self.audio.status() if route=='/api/audio-status' else self.audio.set_volume(data)
+            if route=='/api/audio-status':return self.audio.status()
+            if route=='/api/audio-volume':return self.audio.set_volume(data)
+            if route=='/api/audio-test':return self.audio.play_test(data)
+            if route=='/api/audio-meter-start':return self.audio.start_meter(data)
+            if route=='/api/audio-meter-stop':return self.audio.stop_meter()
+            return self.audio.meter_status()
         if route=='/api/pair': return self.open_pairing()
         if route=='/api/send': return self.enqueue(encode_text(data.get('text')),data.get('reportIntervalMs'))
         if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')),data.get('reportIntervalMs'))
@@ -519,6 +524,7 @@ def main():
     signal.signal(signal.SIGTERM,shutdown);signal.signal(signal.SIGINT,shutdown)
     try: loop.run()
     finally:
+        if hasattr(controller,'audio'):controller.audio.stop_meter()
         controller.agent.resolve(False);controller.close_pairing()
         controller.input.emit(RELEASE);controller.boot_input.emit(RELEASE)
         server.shutdown();server.server_close()

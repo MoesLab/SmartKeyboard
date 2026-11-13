@@ -58,7 +58,7 @@ const settingsMessage=document.querySelector('#settings-message');
 let settingsOpen=false;
 function setSettingsOpen(open){
   if(open&&(finishConfirmation||window.smartKeyboardSelection?.isOpen()||bluetoothPanelOpen||shutdownRequested))return;
-  settingsOpen=open;settingsPanel.hidden=!open;
+  settingsOpen=open;settingsPanel.hidden=!open;document.dispatchEvent(new Event('settingschange'));
   for(const selector of ['header','.cockpit','.lower-panel'])document.querySelector(selector).inert=open;
   if(open)document.querySelector('#backup-export').focus();else focusEditor();
 }

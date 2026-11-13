@@ -1,5 +1,13 @@
 """PulseAudio headset gain only: never changes profiles, routes or services."""
 import os
+import io
+import math
+import select
+import signal
+import struct
+import threading
+import time
+import wave
 from pathlib import Path
 import re
 import shutil
@@ -24,6 +32,8 @@ def parse_devices(output, kind):
 
 class HeadsetAudio:
     def __init__(self,app_home,runner=None):
+        self.session_prefix=None;self.meter_lock=threading.Lock();self.meter_process=None
+        self.meter_deadline=0;self.meter_level=0;self.meter_db=-60;self.meter_message='Microphone level check stopped.'
         if runner is not None:
             self.run=runner
             return
@@ -40,6 +50,7 @@ class HeadsetAudio:
             if not runuser:raise ValueError('Desktop audio account helper is unavailable.')
             prefix=[runuser,'-u',account.pw_name,'--']+env+[pactl]
         else:raise ValueError('Cannot access the desktop audio account.')
+        self.session_prefix=prefix[:-1]
         def run(arguments):
             try:
                 result=subprocess.run(prefix+list(arguments),capture_output=True,text=True,
@@ -63,3 +74,103 @@ class HeadsetAudio:
             raise ValueError('The selected headset endpoint is unavailable. Refresh audio controls.')
         self.run(['set-sink-volume' if kind=='output' else 'set-source-volume',name,str(volume)+'%'])
         return self.status()
+
+
+    def play_test(self,data):
+        name=data.get('name')
+        if not any(device['name']==name for device in self.status()['outputs']):
+            raise ValueError('Connect OpenComm2 and refresh before testing sound.')
+        executable=shutil.which('paplay')
+        if not executable or self.session_prefix is None:raise ValueError('Headset playback helper unavailable.')
+        try:
+            subprocess.run(self.session_prefix+[executable,'--device='+name],input=make_test_tone(),
+                           stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,timeout=3,check=True)
+        except (subprocess.SubprocessError,OSError):raise ValueError('Headset test playback failed. Check the connection and listening level.')
+        return {'ok':True,'message':'Test tone played through OpenComm2 at its current listening level.'}
+
+    def start_meter(self,data):
+        name=data.get('name')
+        if not any(device['name']==name for device in self.status()['inputs']):
+            raise ValueError('No OpenComm2 microphone is available in the current audio mode.')
+        executable=shutil.which('parec')
+        if not executable or self.session_prefix is None:raise ValueError('Microphone level helper unavailable.')
+        self.stop_meter()
+        command=self.session_prefix+[executable,'--device='+name,'--raw','--format=s16le','--rate=8000','--channels=1']
+        try:process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,start_new_session=True)
+        except OSError:raise ValueError('Could not start microphone level check.')
+        with self.meter_lock:
+            self.meter_process=process;self.meter_deadline=time.monotonic()+5
+            self.meter_level=0;self.meter_db=-60;self.meter_message='Speak to check the microphone level. No recording is saved.'
+        threading.Thread(target=self._read_meter,args=(process,),daemon=True).start()
+        return self.meter_status()
+
+    @staticmethod
+    def _terminate_capture(process):
+        if process.poll() is None:
+            try:os.killpg(process.pid,signal.SIGTERM)
+            except ProcessLookupError:pass
+            try:process.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                try:os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+                try:process.wait(timeout=0.5)
+                except subprocess.TimeoutExpired:pass
+
+    def stop_meter(self):
+        with self.meter_lock:
+            process=self.meter_process;self.meter_process=None
+            self.meter_level=0;self.meter_db=-60;self.meter_message='Microphone level check stopped.'
+        if process is not None:threading.Thread(target=self._terminate_capture,args=(process,),daemon=True).start()
+        return {'active':False,'level':0,'db':-60,'message':'Microphone level check stopped.'}
+
+    def meter_status(self):
+        with self.meter_lock:
+            active=self.meter_process is not None
+            if active:self.meter_deadline=time.monotonic()+5
+            return {'active':active,'level':self.meter_level,'db':self.meter_db,'message':self.meter_message}
+
+    def _read_meter(self,process):
+        message='Microphone level check stopped.';pending=b''
+        try:
+            while True:
+                with self.meter_lock:
+                    if self.meter_process is not process:break
+                    if time.monotonic()>self.meter_deadline:break
+                readable,_,_=select.select([process.stdout],[],[],0.25)
+                if not readable:continue
+                chunk=os.read(process.stdout.fileno(),1600)
+                if not chunk:
+                    message='Microphone stream ended. Refresh audio and check the headset connection.';break
+                pending+=chunk;length=len(pending)//2*2
+                if not length:continue
+                level,db=measure_pcm(pending[:length]);pending=pending[length:]
+                with self.meter_lock:
+                    if self.meter_process is process:self.meter_level=level;self.meter_db=db
+        except (OSError,ValueError):message='Microphone stream unavailable. Refresh audio to check the connection.'
+        finally:
+            self._terminate_capture(process)
+            process.stdout.close()
+            with self.meter_lock:
+                if self.meter_process is process:
+                    self.meter_process=None;self.meter_level=0;self.meter_db=-60;self.meter_message=message
+
+
+def make_test_tone():
+    rate=16000;frames=[]
+    for i in range(int(rate*0.55)):
+        t=i/rate;local=t if t<0.25 else t-0.3
+        frequency=660 if t<0.25 else 880
+        amplitude=0 if 0.25<=t<0.3 else 0.10*max(0,min(1,local/0.02,(0.25-local)/0.02))
+        frames.append(struct.pack('<h',round(32767*amplitude*math.sin(2*math.pi*frequency*t))))
+    output=io.BytesIO()
+    with wave.open(output,'wb') as wav:
+        wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(rate);wav.writeframes(b''.join(frames))
+    return output.getvalue()
+
+
+def measure_pcm(data):
+    samples=[sample[0] for sample in struct.iter_unpack('<h',data)]
+    if not samples:return 0,-60
+    rms=math.sqrt(sum(sample*sample for sample in samples)/len(samples))/32768
+    db=max(-60,min(0,20*math.log10(max(rms,0.000001))))
+    return round((db+60)/60*100),round(db,1)

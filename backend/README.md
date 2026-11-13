@@ -136,3 +136,16 @@ remains temporarily loaded, not installed for reboot. PC reconnection is still b
 checked independently. scripts/diagnose-bluetooth.py reads authenticated bridge status,
 installed accessory-filter presence, and separate PC/headset link state without
 printing the bridge token. A paired headset must never be displayed as a keyboard PC.
+
+
+Settings > headset audio now has Test headset, which creates a short low-amplitude
+two-note WAV in memory and plays it explicitly through the selected Shokz sink with
+paplay, at the current headset gain. It never changes the default output or profile.
+Start mic level opens only the currently exposed Shokz microphone with parec. A
+background reader computes RMS dBFS from 8kHz mono PCM; samples are discarded, not
+saved or transmitted to a speech service. The meter maps -60..0dBFS to 0..100; this
+is signal activity, distinct from the microphone gain percentage. The browser polls
+only while the check is active. Closing Settings/collapsing the section/hiding the
+page stops it, and a five-second backend keepalive deadline cleans up capture if the
+page disappears. Backend shutdown also stops capture. No audio profile switches,
+service changes or automatic microphone activation are introduced.
