@@ -110,3 +110,29 @@ References:
 - https://github.com/radxa-pkg/aic8800/blob/main/src/USB/driver_fw/drivers/aic_btusb/aic_btusb.h
 - https://github.com/torvalds/linux/blob/v5.15/include/net/bluetooth/hci_core.h
 - https://github.com/torvalds/linux/blob/v5.15/net/bluetooth/hci_core.c
+
+
+### OpenComm2 volume controls
+
+Settings has an expandable headset panel with listening and microphone 0/25/50/75/100%
+levels. Tone volume is separate. The UI selects only the confirmed OpenComm2 address;
+it never picks another speaker if that headset is absent. Microphone controls remain
+unavailable if PulseAudio has not exposed a microphone. No automatic profile change
+or switch to headset_head_unit occurs. These are live PulseAudio gains, not browser
+preferences exported in JSON backups. Existing mute flags are reported, not overridden.
+
+Authenticated /api/audio-status and /api/audio-volume use fixed pactl commands under
+the desktop user's account, with bounded timeouts and no shell or arbitrary command.
+Only the OpenComm2's currently listed Bluetooth endpoints can be adjusted; HDMI,
+monitor sources, defaults, routes, profiles and services are left unchanged.
+Audio reads/changes are rejected during queued HID delivery to avoid blocking pacing.
+The installer copies headset_audio.py alongside the backend; a backend reinstall is
+required. These controls do not install the experimental kernel driver.
+
+Hardware follow-up: the experimental module compiled and loaded on kernel
+5.15.147-14-a733. The user then confirmed microphone recording and headset playback;
+logs showed sco_num:1 with voice URBs started and no reported new crash. The module
+remains temporarily loaded, not installed for reboot. PC reconnection is still being
+checked independently. scripts/diagnose-bluetooth.py reads authenticated bridge status,
+installed accessory-filter presence, and separate PC/headset link state without
+printing the bridge token. A paired headset must never be displayed as a keyboard PC.

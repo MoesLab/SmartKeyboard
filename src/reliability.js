@@ -148,7 +148,7 @@ document.addEventListener('keydown',event=>{
   if(!settingsOpen)return;
   if(event.key==='Escape'){event.preventDefault();setSettingsOpen(false);}
   if(event.key==='Tab'){
-    const buttons=[...settingsPanel.querySelectorAll('button')].filter(b=>b.getClientRects().length&&!b.disabled);
+    const buttons=[...settingsPanel.querySelectorAll('button,summary')].filter(b=>b.getClientRects().length&&!b.disabled);
     const index=buttons.indexOf(document.activeElement);event.preventDefault();buttons[(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length].focus();
   }
 });

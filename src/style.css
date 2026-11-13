@@ -206,3 +206,8 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 .composer[data-send-state="sending"] #editor { background:#0a303e; box-shadow:inset 0 0 18px #36dcff35,0 0 8px #36dcff70; border-color:#9fefff; }
 .composer[data-send-state="sent"] #editor { background:#112a21; border-color:#a6ef98; box-shadow:inset 0 0 12px #76e68122; }
 .composer[data-send-state="stopped"] #editor { background:#302718; border-color:#ffcb70; box-shadow:inset 0 0 12px #e6a83b22; }
+
+#headset-audio { border-top:1px solid var(--cyan); border-bottom:1px solid var(--cyan); padding:8px 0; }
+#headset-audio summary { font-size:20px; padding:8px 4px; cursor:pointer; touch-action:manipulation; }
+#headset-audio small { display:block; font-size:15px; color:var(--cyan); }
+#headset-audio-message { font-size:18px; }

@@ -12,12 +12,12 @@ if [ ! -f "$source_home/backend/bluetooth_keyboard.py" ] || [ ! -f "$app_home/sr
   echo 'Copy src, scripts and backend into ~/SmartKeyboard before installation.'; exit 1
 fi
 python3 -c 'import dbus; from gi.repository import GLib'
-python3 -m py_compile "$source_home/backend/bluetooth_keyboard.py" "$source_home/backend/hid_keys.py"
+python3 -m py_compile "$source_home/backend/bluetooth_keyboard.py" "$source_home/backend/hid_keys.py" "$source_home/backend/headset_audio.py"
 if [ -f "$unit" ] && ! grep -q '^# SmartKeyboard managed BLE keyboard$' "$unit"; then
   echo 'Unrecognized existing unit; left unchanged.'; exit 1
 fi
 install -d -m 0755 /opt/smartkeyboard-bluetooth
-install -m 0644 "$source_home/backend/bluetooth_keyboard.py" "$source_home/backend/hid_keys.py" /opt/smartkeyboard-bluetooth/
+install -m 0644 "$source_home/backend/bluetooth_keyboard.py" "$source_home/backend/hid_keys.py" "$source_home/backend/headset_audio.py" /opt/smartkeyboard-bluetooth/
 cat > "$unit" <<EOF
 # SmartKeyboard managed BLE keyboard
 [Unit]

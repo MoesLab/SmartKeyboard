@@ -23,6 +23,7 @@ import dbus.mainloop.glib
 import dbus.service
 from gi.repository import GLib
 from hid_keys import REPORT_MAP, RELEASE, encode_text, encode_shortcuts
+from headset_audio import HeadsetAudio
 
 PROPS='org.freedesktop.DBus.Properties'
 OM='org.freedesktop.DBus.ObjectManager'
@@ -403,6 +404,12 @@ class Controller:
         if route=='/api/cancel-send':
             if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
             return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
+        if route in ('/api/audio-status','/api/audio-volume'):
+            if self.queue:raise ValueError('Wait for sending to finish before adjusting headset audio.')
+            if not hasattr(self,'audio'):
+                if not hasattr(self,'audio_home'):raise ValueError('Audio controls unavailable; reinstall the backend.')
+                self.audio=HeadsetAudio(self.audio_home)
+            return self.audio.status() if route=='/api/audio-status' else self.audio.set_volume(data)
         if route=='/api/pair': return self.open_pairing()
         if route=='/api/send': return self.enqueue(encode_text(data.get('text')),data.get('reportIntervalMs'))
         if route=='/api/macro': return self.enqueue(encode_shortcuts(data.get('shortcuts')),data.get('reportIntervalMs'))
@@ -471,7 +478,7 @@ def main():
     bus=dbus.SystemBus();objects=dbus.Interface(bus.get_object('org.bluez','/'),OM).GetManagedObjects()
     adapters=[str(p) for p,v in objects.items() if 'org.bluez.GattManager1' in v and 'org.bluez.LEAdvertisingManager1' in v]
     if len(adapters)!=1: raise RuntimeError('Exactly one GATT/advertising adapter is required')
-    controller=Controller(bus,adapters[0],args.report_interval_ms);controller.props.Set(ADAPTER,'Powered',dbus.Boolean(True))
+    controller=Controller(bus,adapters[0],args.report_interval_ms);controller.audio_home=home;controller.props.Set(ADAPTER,'Powered',dbus.Boolean(True))
     logging.info('Keyboard pacing: %dms/report; target %.1f characters/second',args.report_interval_ms,1000/(2*args.report_interval_ms))
     application=Application(bus,controller);advertisement=Advertisement(bus)
     manager=dbus.Interface(bus.get_object('org.bluez','/org/bluez'),'org.bluez.AgentManager1')

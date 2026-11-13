@@ -100,6 +100,13 @@ class BluetoothLogic(unittest.TestCase):
         self.assertFalse(keyboard.Controller.audio_accessory({'UUIDs':[keyboard.uuid('110a'),keyboard.uuid('110b')]}))
         self.assertFalse(keyboard.Controller.audio_accessory({}))
 
+    def test_audio_controls_cannot_interrupt_queued_hid(self):
+        item=controller();item.audio=Mock();item.audio.status.return_value={'outputs':[],'inputs':[]}
+        self.assertEqual(item.handle('/api/audio-status',{}),{'outputs':[],'inputs':[]})
+        item.enqueue(keyboard.encode_text('Hello'))
+        with self.assertRaises(ValueError):item.handle('/api/audio-volume',{'kind':'output','volume':50})
+        item.audio.set_volume.assert_not_called();self.assertEqual(len(item.queue),10)
+
     def test_zero_or_multiple_hosts_cannot_send(self):
         for kind in ('unpaired','multiple','unsubscribed'):
             item=controller()
