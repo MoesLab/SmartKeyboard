@@ -8,12 +8,14 @@ import subprocess
 import threading
 import time
 from zima_dictation_worker import load_pairing
+from cloud_health import CloudHealth
 from audio_preferences import selected, HEADSET, verify_headset_driver
 
 
 class LocalDictation:
     def __init__(self,app_home,audio):
         self.app=Path(app_home);self.audio=audio;self.lock=threading.Lock();self.process=None;self.deadline=0
+        self.cloud_health=CloudHealth(self.app,self.cloud_route)
         self.state={'id':'','state':'idle','text':'','partial':'','level':0,'message':'Local English dictation is idle.'}
 
     def cloud_route(self):

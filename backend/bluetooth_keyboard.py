@@ -405,11 +405,12 @@ class Controller:
         if route=='/api/cancel-send':
             if self.queue:self.stop_delivery('Send stopped by user. Draft kept; check the PC before resending.','cancelled')
             return {'ok':True,'message':self.last_message,'delivery':dict(getattr(self,'delivery',{}))}
-        if route in ('/api/dictation-status','/api/dictation-start','/api/dictation-stop'):
+        if route in ('/api/dictation-status','/api/dictation-start','/api/dictation-stop','/api/cloud-health'):
             if not hasattr(self,'dictation'):
                 if not hasattr(self,'audio_home'):raise ValueError('Reinstall the backend for local dictation support.')
                 if not hasattr(self,'audio'):self.audio=HeadsetAudio(self.audio_home)
                 self.dictation=LocalDictation(self.audio_home,self.audio)
+            if route=='/api/cloud-health':return self.dictation.cloud_health.snapshot()
             if route=='/api/dictation-status':return self.dictation.snapshot()
             if route=='/api/dictation-stop':return self.dictation.stop()
             if self.queue:raise ValueError('Wait for sending to finish before starting dictation.')

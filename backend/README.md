@@ -395,3 +395,15 @@ diagnose-stt.py reports cloudRoute=direct without exposing credentials. Local mo
 can still use paired Zima's Vosk, so Zima must remain on only for that selection.
 To prove independence, test one Cloud recording with Zima offline after hardware
 deployment. Direct cloud performance on Radxa is pending that user test.
+
+
+Direct Cloud button has an inset status light: green API reachable/model accepted,
+red check failed/config disabled, amber checking/unverified Zima route. It does not
+change button geometry or imply a successful paid transcription. Authenticated
+/api/cloud-health schedules a background GET /v1/models/gpt-transcribe at most once
+per 60s; UI refreshes status every 15s while visible. No audio or paid transcription
+in a health check. Failures are sanitized; key never reaches UI. Restricted API keys
+without model-read permission can show red even if transcription access is allowed.
+Zima-only route stays amber, rather than falsely declaring OpenAI reachable.
+
+- User simplified the flow: selecting Cloud then tapping Dictate starts capture immediately; tapping Stop uploads/transcribes. The extra pre-recording confirmation is removed by explicit request. Maximum 60s recording still auto-finishes. Review/Insert remains required; no automatic SEND. Cloud tooltip/selection status disclose paid upload. This replaces earlier per-recording-confirmation instructions above.

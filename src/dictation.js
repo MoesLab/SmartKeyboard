@@ -9,7 +9,7 @@ const dictationMeter=document.querySelector('#dictation-level');
 function renderDictation(){
  dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):'Dictate';
  dictateButton.setAttribute('aria-pressed',String(dictationBusy));dictateButton.disabled=dictationStopRequested;
- dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Cloud requires explicit upload confirmation before recording.':'Local English dictation; review before inserting. Model setup required.';
+ dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Tap Dictate to record; tap Stop for paid cloud transcription. Maximum 60 seconds. Review before inserting.':'Local English dictation; review before inserting. Model setup required.';
  for(const button of document.querySelectorAll('[data-dictation-mode]')){button.disabled=dictationBusy;button.setAttribute('aria-pressed',String(button.dataset.dictationMode===dictationMode));}
  if(typeof renderBluetooth==='function')renderBluetooth();
 }
@@ -51,8 +51,7 @@ dictateButton.addEventListener('click',async()=>{
   const available=await bluetoothRequest('/api/dictation-status');dictationAvailable=available.localAvailable;renderDictation();
   if(dictationMode==='cloud'){
    if(!available.cloudAvailable){await confirmSave('Enable a direct Radxa or ZimaBoard cloud route first. No microphone opened and no audio uploaded.',{title:'Cloud setup required',confirmLabel:'OK'});focusEditor();return;}
-   const accepted=await confirmSave('Record up to 60 seconds from the selected Radxa microphone. When you stop, the recording goes to OpenAI for paid transcription using your configured direct or ZimaBoard route. Review before inserting; nothing is sent to your PC.',{title:'Cloud dictation · audio upload',confirmLabel:'Start recording'});
-   if(!accepted){focusEditor();return;}
+   // Cloud selection and explicit Dictate/Stop are the recording/upload actions.
   }else if(!available.localAvailable){await confirmSave(available.setupMessage,{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
   dictationStart={draft:editor.value,range:[...selection]};
   await stopMicMeter();
@@ -65,7 +64,7 @@ dictateButton.addEventListener('click',async()=>{
 for(const button of document.querySelectorAll('[data-dictation-mode]'))button.addEventListener('click',()=>{
  if(dictationBusy)return;dictationMode=button.dataset.dictationMode;
  try{localStorage.setItem('smartKeyboard.dictationMode',dictationMode);}catch{}
- renderDictation();status.textContent=dictationMode==='local'?'Local English selected. Recognition runs only after Dictate.':'Cloud selected. Dictate asks before recording and paid upload.';focusEditor();
+ renderDictation();status.textContent=dictationMode==='local'?'Local English selected. Recognition runs only after Dictate.':'Cloud · tap Dictate to record, then Stop to upload for paid transcription. Review before Insert.';focusEditor();
 });
 document.querySelector('#composer-audio-open').addEventListener('pointerdown',event=>event.preventDefault());
 document.querySelector('#composer-audio-open').addEventListener('click',()=>{
@@ -78,3 +77,19 @@ window.smartKeyboardDictation={active:()=>dictationBusy};
 renderDictation();
 
 bluetoothRequest('/api/dictation-status').then(state=>{dictationAvailable=state.localAvailable;renderDictation();}).catch(error=>{dictateButton.title='Dictation connection: '+error.message;});
+
+let cloudHealthPolling=false;
+async function pollCloudHealth(){
+ if(document.hidden||cloudHealthPolling)return;
+ cloudHealthPolling=true;const button=document.querySelector('[data-dictation-mode="cloud"]');
+ try{
+  const health=await bluetoothRequest('/api/cloud-health');
+  button.dataset.cloudHealth=['online','offline','checking','unknown'].includes(health.state)?health.state:'unknown';
+  button.title=health.message||'Cloud status unavailable';
+  button.setAttribute('aria-label','Cloud · '+button.dataset.cloudHealth);
+ }catch{button.dataset.cloudHealth='offline';button.title='Cloud status unavailable: check the local backend.';button.setAttribute('aria-label','Cloud · status unavailable');}
+ finally{cloudHealthPolling=false;}
+}
+setInterval(pollCloudHealth,15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollCloudHealth();});
+pollCloudHealth();

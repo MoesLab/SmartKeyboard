@@ -236,3 +236,9 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 /* Audio settings only; main canvas and control geometry are unchanged. */
 #headset-audio select { width:320px; max-width:100%; height:42px; font-size:17px; color:var(--cyan); background:#101c2b; border:1px solid var(--cyan); }
 #headset-audio .appearance-row>label { min-width:0; font-size:18px; }
+
+/* Live API light stays inside the existing Cloud button. */
+[data-dictation-mode="cloud"] { position:relative; }
+[data-dictation-mode="cloud"]::after { content:""; position:absolute; right:3px; top:3px; width:7px; height:7px; border-radius:50%; background:#d4a54a; pointer-events:none; }
+[data-dictation-mode="cloud"][data-cloud-health="online"]::after { background:#76f14e; box-shadow:0 0 4px #76f14e; }
+[data-dictation-mode="cloud"][data-cloud-health="offline"]::after { background:#ff5555; }
