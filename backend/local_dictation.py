@@ -131,6 +131,7 @@ class LocalDictation:
                     elif kind=='partial':self.state['partial']=event.get('text','')[:500]
                     elif kind=='done':self.state.update(state='done',partial='',message=event.get('message','Dictation stopped.'))
                     elif kind=='error':self.state.update(state='error',message=event.get('message','Local recognition failed.'))
+                    if kind=='ready' and event.get('readyCue') is False:self.state['message']+=' · headset cue unavailable'
                     if 'spectrum' in event:
                         values=event['spectrum']
                         if isinstance(values,list) and len(values)==24 and all(type(value) in (int,float) and 0<=value<=100 for value in values):self.state['spectrum']=values

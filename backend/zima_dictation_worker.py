@@ -12,6 +12,7 @@ import ssl
 import subprocess
 import time
 from speech_spectrum import bands
+from dictation_ready import prepare_headset
 from audio_preferences import allowed_input
 
 STOP = False
@@ -91,7 +92,10 @@ def main():
         stage = 'microphone'
         from headset_audio import measure_pcm
         process = subprocess.Popen(['parec', '--device=' + args.source, '--raw', '--format=s16le', '--rate=16000', '--channels=1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        emit('ready', message='Listening on Radxa · Stop for cloud transcription' if direct else 'Listening on Radxa · Stop to transcribe on ZimaBoard')
+        cue=prepare_headset(process,args.source,lambda:STOP)
+        if STOP:
+            emit('done',message='Stopped before listening.');return 0
+        emit('ready', message='Listening on Radxa · Stop for cloud transcription' if direct else 'Listening on Radxa · Stop to transcribe on ZimaBoard', readyCue=cue)
         recording = bytearray(); pending = b''; last_spectrum=0; spectrum=[0]*24; deadline = time.monotonic() + 60
         while not STOP and time.monotonic() < deadline and len(recording) < MAX_AUDIO:
             readable, _, _ = select.select([process.stdout], [], [], 0.25)

@@ -34,7 +34,7 @@ class WorkerTests(unittest.TestCase):
 
     def test_capture_failure_reports_error_and_cleans_up(self):
         process=Mock();process.poll.return_value=None;process.stdout.fileno.return_value=10;output=io.StringIO();worker.STOP=False
-        with patch.object(worker,'tune'),patch.dict(sys.modules,{'vosk':self.fake_vosk()}),patch.object(sys,'argv',['worker','--model','fixture','--source','bluez_source.C0_86_B3_F2_E8_96.headset_head_unit']),patch.object(worker.signal,'signal'),patch.object(worker.subprocess,'Popen',return_value=process),patch.object(worker.select,'select',return_value=([process.stdout],[],[])),patch.object(worker.os,'read',side_effect=[struct.pack('<h',3000)*800,b'']),contextlib.redirect_stdout(output):
+        with patch.object(worker,'tune'),patch.object(worker,'prepare_headset',return_value=True),patch.dict(sys.modules,{'vosk':self.fake_vosk()}),patch.object(sys,'argv',['worker','--model','fixture','--source','bluez_source.C0_86_B3_F2_E8_96.headset_head_unit']),patch.object(worker.signal,'signal'),patch.object(worker.subprocess,'Popen',return_value=process),patch.object(worker.select,'select',return_value=([process.stdout],[],[])),patch.object(worker.os,'read',side_effect=[struct.pack('<h',3000)*800,b'']),contextlib.redirect_stdout(output):
             self.assertEqual(worker.main(),1)
         events=[json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual([event['kind'] for event in events],['ready','partial','error'])

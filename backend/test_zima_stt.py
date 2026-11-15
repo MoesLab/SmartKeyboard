@@ -123,6 +123,7 @@ class PairingTests(unittest.TestCase):
         try:
             with patch('sys.argv',['worker','--config','private','--source','bluez_source.C0_86_B3_F2_E8_96.headset_head_unit']), \
                  patch.object(worker,'load_pairing',return_value={}), \
+                 patch.object(worker,'prepare_headset',return_value=True), \
                  patch.object(worker,'request',side_effect=[{'ready':True},{'text':'hello world'}]) as request, \
                  patch.object(worker.signal,'signal'), \
                  patch.object(worker.subprocess,'Popen',return_value=process), \
