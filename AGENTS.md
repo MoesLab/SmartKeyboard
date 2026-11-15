@@ -52,3 +52,5 @@
 
 - Dictation insertion setting defaults Review first; user may opt into Insert automatically for complete results at an unchanged collapsed caret. Changed drafts/caret, selected text and partial-error results still require review. Insert advances caret for successive phrases, never SENDs. Cloud button uses two-line Live/Offline/Check text with dark surface; preserve 60x38 geometry.
 - User requested a Shokz readiness cue: play two gentle rising notes only after live mic PCM, discard warmup/cue-time PCM before recording, then show listening. Do not alter volume/profile/default audio route or play on unrelated speakers. Cue failure reports unavailable without blocking usable dictation; headset hardware trial pending.
+
+- User requested Linux/Windows CLI Quick Text samples; keep Default unchanged. cli-library-v1 replaces only exact factory prose/seed entries once, preserves custom and previously cleared slots, and retains 48-slot paging. Hold-save label/text persist in existing kiosk profile and validated backups. Commands are text only, no newline/auto-execution; use confirmation for delete examples.
