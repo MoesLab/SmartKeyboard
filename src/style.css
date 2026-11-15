@@ -237,12 +237,11 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 #headset-audio select { width:320px; max-width:100%; height:42px; font-size:17px; color:var(--cyan); background:#101c2b; border:1px solid var(--cyan); }
 #headset-audio .appearance-row>label { min-width:0; font-size:18px; }
 
-/* Live API light stays inside the existing Cloud button. */
-[data-dictation-mode="cloud"] { position:relative; }
-[data-dictation-mode="cloud"]::after { content:""; position:absolute; right:3px; top:3px; width:7px; height:7px; border-radius:50%; background:#d4a54a; pointer-events:none; }
-[data-dictation-mode="cloud"][data-cloud-health="online"]::after { background:#76f14e; box-shadow:0 0 4px #76f14e; }
-[data-dictation-mode="cloud"][data-cloud-health="offline"]::after { background:#ff5555; }
-
+/* Keep selected speech buttons dark and readable in every theme. */
+#dictation-modes button::after { inset:2px; width:auto; height:auto; border-radius:0; background:linear-gradient(135deg,#10232d,#03090f 65%); box-shadow:none; }
+#dictation-modes button { color:#fff; text-shadow:none; }
+#dictation-modes button[aria-pressed="true"]::before { background:#b2f3ff; }
+#dictation-modes .cloud-label { display:block; white-space:pre-line; font-size:12px; line-height:13px; }
 /* Spectrum covers the existing lower layer only; it never replaces its state. */
 #dictation-spectrum { z-index:3; background:linear-gradient(145deg,#07141e,#02080d); }
 #dictation-spectrum canvas { width:100%; height:416px; display:block; }

@@ -49,3 +49,5 @@
 - User requested Cloud live indicator (green reachable/key+model accepted, red failed, amber checking/unverified) inside existing button without resizing. User also explicitly simplified Dictate to one tap start / next tap Stop+transcribe, removing extra Start recording modal. Paid upload is disclosed by Cloud mode; review/Insert and separate SEND remain required. This supersedes earlier per-recording-confirmation notes.
 
 - Dictation spectrum overlays only the existing lower section while actually listening. Use real PCM-derived bands, preserve Quick Text/keyboard hidden and inert states, restore immediately on Stop/error/processing, never move composer or controls. Keep analysis bounded and draw only while visible/listening.
+
+- Dictation insertion setting defaults Review first; user may opt into Insert automatically for complete results at an unchanged collapsed caret. Changed drafts/caret, selected text and partial-error results still require review. Insert advances caret for successive phrases, never SENDs. Cloud button uses two-line Live/Offline/Check text with dark surface; preserve 60x38 geometry.

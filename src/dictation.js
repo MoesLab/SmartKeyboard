@@ -1,5 +1,6 @@
 'use strict';
-let dictationMode='local';
+let dictationMode='local',dictationInsert='review';
+try{const saved=localStorage.getItem('smartKeyboard.dictationInsert');if(['review','auto'].includes(saved))dictationInsert=saved;}catch{}
 try{const saved=localStorage.getItem('smartKeyboard.dictationMode');if(['local','cloud'].includes(saved))dictationMode=saved;}catch{}
 let dictationAvailable=false,dictationActionBusy=false;
 let dictationStopRequested=false;
@@ -7,6 +8,7 @@ let dictationBusy=false,dictationSession='',dictationPolling=false,dictationStar
 const dictateButton=document.querySelector('#dictation-toggle');
 const dictationMeter=document.querySelector('#dictation-level');
 function renderDictation(){
+ document.querySelectorAll('[data-dictation-insert]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.dictationInsert===dictationInsert)));
  dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):'Dictate';
  dictateButton.setAttribute('aria-pressed',String(dictationBusy));dictateButton.disabled=dictationStopRequested;
  dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Tap Dictate to record; tap Stop for paid cloud transcription. Maximum 60 seconds. Review before inserting.':'Local English dictation; review before inserting. Model setup required.';
@@ -34,12 +36,13 @@ async function pollDictation(){
   dictationSession='';dictationBusy=false;dictationStopRequested=false;clearInterval(dictationPollTimer);dictationPollTimer=null;dictationMeter.value=0;renderDictation();
   if(!text){status.textContent=state.state==='error'?state.message:'No speech recognized. Your draft is unchanged.';return;}
   const range=editor.value===dictationStart.draft?[...dictationStart.range]:[...selection];
-  const accepted=await confirmSave((state.state==='error'?'Recognition stopped early. Review this partial result.\n\n':'')+text+'\n\nInsert at the selected composer position? Nothing has been sent to your PC.',{title:dictationMode==='cloud'?'Review cloud dictation':'Review local English dictation',confirmLabel:'Insert text'});
+  const canAuto=dictationInsert==='auto'&&state.state==='done'&&editor.value===dictationStart.draft&&range[0]===range[1]&&selection[0]===dictationStart.range[0]&&selection[1]===dictationStart.range[1];
+  const accepted=canAuto||await confirmSave((state.state==='error'?'Recognition stopped early. Review this partial result.\n\n':'')+text+'\n\nInsert at the selected composer position? Nothing has been sent to your PC.',{title:dictationMode==='cloud'?'Review cloud dictation':'Review local English dictation',confirmLabel:'Insert text'});
   if(accepted){
    selection=range;
    const before=editor.value.slice(0,range[0]),after=editor.value.slice(range[1]);
-   insert((before&&!/\s$/.test(before)?' ':'')+text+(after&&!/^\s/.test(after)?' ':''));
-   status.textContent='Dictation inserted locally. Review it, then use SEND when ready.';
+   insert((before&&!/\s$/.test(before)&&! /^[,.;:!?…)}\]]/.test(text)?' ':'')+text+(after&&!/^\s/.test(after)&&! /^[,.;:!?…)}\]]/.test(after)?' ':''));
+   status.textContent=canAuto?'Dictation added. Tap Dictate for the next phrase; SEND when ready.':'Dictation inserted locally. Edit it, then use SEND when ready.';
   }else{status.textContent='Dictation discarded; composer unchanged.';focusEditor();}
  }catch(error){window.smartKeyboardSpectrum?.end();status.textContent=error.message;}
  finally{dictationPolling=false;}
@@ -68,6 +71,8 @@ for(const button of document.querySelectorAll('[data-dictation-mode]'))button.ad
  try{localStorage.setItem('smartKeyboard.dictationMode',dictationMode);}catch{}
  renderDictation();status.textContent=dictationMode==='local'?'Local English selected. Recognition runs only after Dictate.':'Cloud · tap Dictate to record, then Stop to upload for paid transcription. Review before Insert.';focusEditor();
 });
+document.querySelectorAll('[data-dictation-insert]').forEach(button=>button.addEventListener('click',()=>{dictationInsert=button.dataset.dictationInsert;try{localStorage.setItem('smartKeyboard.dictationInsert',dictationInsert);}catch{}renderDictation();}));
+
 document.querySelector('#composer-audio-open').addEventListener('pointerdown',event=>event.preventDefault());
 document.querySelector('#composer-audio-open').addEventListener('click',()=>{
  setSettingsOpen(true);document.querySelector('#headset-audio').open=true;refreshHeadsetAudio();
@@ -88,8 +93,9 @@ async function pollCloudHealth(){
   const health=await bluetoothRequest('/api/cloud-health');
   button.dataset.cloudHealth=['online','offline','checking','unknown'].includes(health.state)?health.state:'unknown';
   button.title=health.message||'Cloud status unavailable';
+  button.querySelector('.cloud-label').textContent='Cloud\n'+(health.state==='online'?'Live':health.state==='offline'?'Offline':health.state==='checking'?'Check…':'Check…');
   button.setAttribute('aria-label','Cloud · '+button.dataset.cloudHealth);
- }catch{button.dataset.cloudHealth='offline';button.title='Cloud status unavailable: check the local backend.';button.setAttribute('aria-label','Cloud · status unavailable');}
+ }catch{button.querySelector('.cloud-label').textContent='Cloud\nOffline';button.dataset.cloudHealth='offline';button.title='Cloud status unavailable: check the local backend.';button.setAttribute('aria-label','Cloud · status unavailable');}
  finally{cloudHealthPolling=false;}
 }
 setInterval(pollCloudHealth,15000);

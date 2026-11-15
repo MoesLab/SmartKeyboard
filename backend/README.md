@@ -417,3 +417,5 @@ upload path is unchanged. True listening covers existing lower-panel layer;
 Stop immediately removes overlay before processing/review. Underlying Quick Text
 and keyboard hidden states remain untouched, and their prior inert states restore.
 No controls move/resize, no draft/caret/page changes, no persistent UI state changes.
+
+Dictation text setting (Settings) offers review(default) or auto insertion. Auto applies only to complete results at the unchanged collapsed caret with the same draft, so edits during recognition/selected replacements/errors still require review. Cursor advances; repeated phrases append with spacing, no automatic SEND. This harmless preference is whitelisted/validated in browser backups. Cloud status is now two-line Live/Offline/Check… text on dark background in original fixed button; LED removed because it interfered with chamfered button background.
