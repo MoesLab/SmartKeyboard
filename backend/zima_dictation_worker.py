@@ -11,6 +11,7 @@ import signal
 import ssl
 import subprocess
 import time
+from speech_spectrum import bands
 from audio_preferences import allowed_input
 
 STOP = False
@@ -91,7 +92,7 @@ def main():
         from headset_audio import measure_pcm
         process = subprocess.Popen(['parec', '--device=' + args.source, '--raw', '--format=s16le', '--rate=16000', '--channels=1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         emit('ready', message='Listening on Radxa · Stop for cloud transcription' if direct else 'Listening on Radxa · Stop to transcribe on ZimaBoard')
-        recording = bytearray(); pending = b''; deadline = time.monotonic() + 60
+        recording = bytearray(); pending = b''; last_spectrum=0; spectrum=[0]*24; deadline = time.monotonic() + 60
         while not STOP and time.monotonic() < deadline and len(recording) < MAX_AUDIO:
             readable, _, _ = select.select([process.stdout], [], [], 0.25)
             if not readable:
@@ -109,7 +110,9 @@ def main():
             if pcm:
                 recording.extend(pcm)
                 level, db = measure_pcm(pcm)
-                emit('partial', text='', level=level, db=db)
+                if time.monotonic()-last_spectrum>=0.1:
+                    spectrum=bands(pcm);last_spectrum=time.monotonic()
+                emit('partial', text='', level=level, db=db,spectrum=spectrum)
         process.terminate(); process.wait(timeout=2); process.stdout.close(); process = None
         if recording:
             emit('processing', message='Cloud transcription · paid audio upload' if args.mode=='cloud' else 'Transcribing on your ZimaBoard · please wait', level=0)

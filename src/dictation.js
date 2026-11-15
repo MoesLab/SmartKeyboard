@@ -14,6 +14,7 @@ function renderDictation(){
  if(typeof renderBluetooth==='function')renderBluetooth();
 }
 async function stopDictation(){
+ window.smartKeyboardSpectrum?.end();
  if(!dictationSession||dictationStopRequested)return;
  dictationStopRequested=true;renderDictation();
  try{await bluetoothRequest('/api/dictation-stop');status.textContent='Stopping dictation…';await pollDictation();}
@@ -26,6 +27,7 @@ async function pollDictation(){
   const state=await bluetoothRequest('/api/dictation-status');
   if(state.id!==dictationSession)return;
   dictationMeter.value=state.level||0;
+  window.smartKeyboardSpectrum?.update(state,dictationStopRequested);
   if(['loading','listening','stopping','processing'].includes(state.state)){status.textContent=state.partial?`Hearing: ${state.partial}`:state.message;return;}
   if(document.hidden||settingsOpen||bluetoothPanelOpen||finishConfirmation||window.smartKeyboardSelection?.isOpen())return;
   const text=((state.text||'')+(state.state==='error'&&state.partial?' '+state.partial:'')).trim();
@@ -39,7 +41,7 @@ async function pollDictation(){
    insert((before&&!/\s$/.test(before)?' ':'')+text+(after&&!/^\s/.test(after)?' ':''));
    status.textContent='Dictation inserted locally. Review it, then use SEND when ready.';
   }else{status.textContent='Dictation discarded; composer unchanged.';focusEditor();}
- }catch(error){status.textContent=error.message;}
+ }catch(error){window.smartKeyboardSpectrum?.end();status.textContent=error.message;}
  finally{dictationPolling=false;}
 }
 dictateButton.addEventListener('pointerdown',event=>event.preventDefault());

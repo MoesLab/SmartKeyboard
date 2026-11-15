@@ -131,6 +131,9 @@ class LocalDictation:
                     elif kind=='partial':self.state['partial']=event.get('text','')[:500]
                     elif kind=='done':self.state.update(state='done',partial='',message=event.get('message','Dictation stopped.'))
                     elif kind=='error':self.state.update(state='error',message=event.get('message','Local recognition failed.'))
+                    if 'spectrum' in event:
+                        values=event['spectrum']
+                        if isinstance(values,list) and len(values)==24 and all(type(value) in (int,float) and 0<=value<=100 for value in values):self.state['spectrum']=values
                     if 'level' in event:self.state['level']=max(0,min(100,int(event['level'])))
         except (OSError,ValueError,TypeError):
             with self.lock:self.state.update(state='error',message='Local recognizer output failed. Draft unchanged.')
@@ -143,7 +146,7 @@ class LocalDictation:
                 code=process.wait(timeout=2)
             with self.lock:
                 if self.process is process:
-                    self.process=None;self.state['level']=0
+                    self.process=None;self.state['level']=0;self.state['spectrum']=[]
                     if self.state['state'] not in ('done','error'):self.state.update(state='done' if code==0 else 'error',message='Dictation stopped. Review available text.' if code==0 else 'Recognizer stopped before completion. Review available text.')
 
     def close(self):

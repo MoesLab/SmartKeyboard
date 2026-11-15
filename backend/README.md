@@ -407,3 +407,13 @@ without model-read permission can show red even if transcription access is allow
 Zima-only route stays amber, rather than falsely declaring OpenAI reachable.
 
 - User simplified the flow: selecting Cloud then tapping Dictate starts capture immediately; tapping Stop uploads/transcribes. The extra pre-recording confirmation is removed by explicit request. Maximum 60s recording still auto-finishes. Review/Insert remains required; no automatic SEND. Cloud tooltip/selection status disclose paid upload. This replaces earlier per-recording-confirmation instructions above.
+
+
+Live spectrum: 24 speech-band bins (80Hz–3.8kHz) from captured PCM, no invented
+activity or browser microphone permission. Dependency-free bounded Goertzel over
+at most 64ms, computed at most 10Hz; browser low-resolution canvas interpolates
+at most 20fps only while listening/visible. Spectrum never goes to OpenAI; audio
+upload path is unchanged. True listening covers existing lower-panel layer;
+Stop immediately removes overlay before processing/review. Underlying Quick Text
+and keyboard hidden states remain untouched, and their prior inert states restore.
+No controls move/resize, no draft/caret/page changes, no persistent UI state changes.

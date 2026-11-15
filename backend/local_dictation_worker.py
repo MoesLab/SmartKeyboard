@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 import wave
+from speech_spectrum import bands
 from audio_preferences import allowed_input
 
 STOP=False
@@ -67,7 +68,7 @@ def main():
         recognizer=KaldiRecognizer(model,16000)
         process=subprocess.Popen(['parec','--device='+args.source,'--raw','--format=s16le','--rate=16000','--channels=1'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
         emit('ready',modelLoadSeconds=round(load_seconds,3));deadline=time.monotonic()+60
-        pending=b''
+        pending=b'';last_spectrum=0;spectrum=[0]*24
         while not STOP and time.monotonic()<deadline:
             readable,_,_=select.select([process.stdout],[],[],0.25)
             if not readable:
@@ -81,8 +82,10 @@ def main():
             if not length:continue
             data=pending[:length];pending=pending[length:]
             level,db=measure_pcm(data)
-            if recognizer.AcceptWaveform(data):emit('final',text=json.loads(recognizer.Result()).get('text',''),level=level,db=db)
-            else:emit('partial',text=json.loads(recognizer.PartialResult()).get('partial',''),level=level,db=db)
+            if time.monotonic()-last_spectrum>=0.1:
+                spectrum=bands(data);last_spectrum=time.monotonic()
+            if recognizer.AcceptWaveform(data):emit('final',text=json.loads(recognizer.Result()).get('text',''),level=level,db=db,spectrum=spectrum)
+            else:emit('partial',text=json.loads(recognizer.PartialResult()).get('partial',''),level=level,db=db,spectrum=spectrum)
         emit('final',text=json.loads(recognizer.FinalResult()).get('text',''))
         emit('done',message='Stopped. Review the recognized text before inserting it.')
         return 0
