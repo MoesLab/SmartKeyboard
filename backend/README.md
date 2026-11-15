@@ -365,3 +365,33 @@ conflicts are rejected. Reconnect Shokz only requests the project's existing tes
 headset restore service asynchronously, guarded by the known patched driver identity.
 It does not reload drivers, change Wi-Fi/EZ Signage/display, or pair new headsets.
 No new GUI canvas positions, editor sizes, saved macros or Chromium profiles change.
+
+
+## Direct Radxa cloud route (no ZimaBoard dependency)
+
+After the successful headset/cloud trial, the user requested removing Zima from
+Cloud mode. Existing cloud configurations keep route=zima unless deliberately
+changed. Run `python3 ~/SmartKeyboard/scripts/enable-cloud-stt.py --direct` as radxa.
+It prompts once with hidden input if needed, validates one sk- token and stores it
+atomically with mode 600 in ~/SmartKeyboard/config/openai-api-key. This file is
+ignored by Git and browser backup. Never paste its contents in chat or put it in
+bridge-config.js. --direct --replace-key safely replaces it; --disable stops Cloud
+availability; default enable without --direct returns to the existing paired Zima
+route and preserves the private direct key. No setup command makes an API request.
+
+Copy backend/*.py, scripts/*.py, scripts/*.sh and src after checkpoint, then rerun
+the existing BLE installer. This necessarily restarts the BLE service: keep Windows
+pairing. The new files don't alter BLE advertising/HID. Earlier pairing failure was
+resolved by removing Windows' remaining radxa-cubie-a7z saved keyboard entry; do not
+automatically remove pairings after service restarts. Check SEND before Dictate.
+
+Direct uses the existing bounded capture worker with --direct-key-dir and --mode
+cloud, under the desktop user's Pulse session. No LAN health call, pairing file,
+Vosk model, pip install or 512MiB model-memory gate is required. On Stop it sends
+the RAM-only WAV directly to the fixed OpenAI TLS endpoint via cloud_transcription.py.
+Per-recording consent, <=60s audio, no retries/redirects, error states, review/Insert
+and separate SEND are unchanged. Driver/source guards and heartbeat limits remain.
+diagnose-stt.py reports cloudRoute=direct without exposing credentials. Local mode
+can still use paired Zima's Vosk, so Zima must remain on only for that selection.
+To prove independence, test one Cloud recording with Zima offline after hardware
+deployment. Direct cloud performance on Radxa is pending that user test.

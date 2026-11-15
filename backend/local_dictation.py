@@ -16,10 +16,19 @@ class LocalDictation:
         self.app=Path(app_home);self.audio=audio;self.lock=threading.Lock();self.process=None;self.deadline=0
         self.state={'id':'','state':'idle','text':'','partial':'','level':0,'message':'Local English dictation is idle.'}
 
-    def cloud_enabled(self):
+    def cloud_route(self):
         try:
-            return json.loads((self.app/'config/cloud-stt.json').read_text()).get('enabled') is True
-        except (OSError,ValueError,TypeError,AttributeError):return False
+            config=json.loads((self.app/'config/cloud-stt.json').read_text())
+            if config.get('enabled') is not True:return None
+            route=config.get('route','zima')
+            if route=='direct':return 'direct' if (self.app/'config/openai-api-key').is_file() else None
+            if route=='zima':
+                load_pairing(self.app/'config/zima-stt.json');return 'zima'
+        except (OSError,ValueError,TypeError,KeyError,AttributeError):pass
+        return None
+
+    def cloud_enabled(self):
+        return self.cloud_route() is not None
 
     def availability(self):
         pairing=self.app/'config/zima-stt.json'
@@ -29,7 +38,7 @@ class LocalDictation:
                 return {'localAvailable':True,'cloudAvailable':self.cloud_enabled(),'language':'en-US','engine':'zima',
                         'setupMessage':'Local-network English recognition on your paired ZimaBoard.'}
             except (OSError,ValueError,KeyError,TypeError):
-                return {'localAvailable':False,'cloudAvailable':False,'language':'en-US','engine':'zima',
+                return {'localAvailable':False,'cloudAvailable':self.cloud_enabled(),'language':'en-US','engine':'zima',
                         'setupMessage':'ZimaBoard pairing is disabled or invalid. Draft and keyboard are unchanged.'}
         python=self.app/'.venv-stt/bin/python';model=self.app/'models/vosk-model-small-en-us-0.15'
         ready=python.is_file() and (model/'am/final.mdl').is_file()
@@ -40,23 +49,23 @@ class LocalDictation:
             if isinstance(setup,dict) and setup.get('enabled') is False:
                 message='Local English is installed but disabled after its benchmark. Review the speed report before opting in with --allow-slow.'
         except (OSError,ValueError):ready=False
-        return {'localAvailable':ready,'cloudAvailable':False,'language':'en-US',
+        return {'localAvailable':ready,'cloudAvailable':self.cloud_enabled(),'language':'en-US',
                 'setupMessage':message}
 
     def snapshot(self,keepalive=True):
         with self.lock:
             if keepalive and self.process is not None and self.state['state'] in ('loading','listening','processing'):self.deadline=time.monotonic()+5
-            return dict(self.state,**self.availability())
+            return dict(self.state,cloudRoute=self.cloud_route() or 'disabled',**self.availability())
 
     def start(self,data):
         mode=data.get('mode','local')
         if mode not in ('local','cloud'):raise ValueError('Unknown dictation mode.')
         if mode=='cloud' and not self.availability().get('cloudAvailable'):raise ValueError('Cloud dictation is not configured. No audio was uploaded.')
-        if not self.availability()['localAvailable']:raise ValueError('Local English model is not installed. Run install-local-stt.py first.')
+        if mode=='local' and not self.availability()['localAvailable']:raise ValueError('Local English model is not installed. Run install-local-stt.py first.')
         memory=Path('/proc/meminfo')
         if memory.exists():
             available=next((int(line.split()[1]) for line in memory.read_text().splitlines() if line.startswith('MemAvailable:')),0)
-            if self.availability().get('engine')!='zima' and available<512*1024:raise ValueError('Local dictation needs more free RAM. Keyboard and draft are unchanged.')
+            if mode=='local' and self.availability().get('engine')!='zima' and available<512*1024:raise ValueError('Local dictation needs more free RAM. Keyboard and draft are unchanged.')
         with self.lock:
             if self.process is not None:raise ValueError('Dictation is already running.')
         source=selected(self.app)
@@ -69,10 +78,13 @@ class LocalDictation:
         remote=self.availability().get('engine')=='zima'
         if remote:
             command=self.audio.session_prefix+['/usr/bin/python3',str(Path(__file__).with_name('zima_dictation_worker.py')),'--config',str(self.app/'config/zima-stt.json'),'--source',source,'--mode',mode]
+        direct=mode=='cloud' and self.cloud_route()=='direct'
+        if direct:
+            command=self.audio.session_prefix+['/usr/bin/python3',str(Path(__file__).with_name('zima_dictation_worker.py')),'--direct-key-dir',str(self.app/'config'),'--source',source,'--mode','cloud']
         process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding='utf-8',bufsize=1,start_new_session=True)
         with self.lock:
             self.process=process;self.deadline=time.monotonic()+5;self.hard_deadline=time.monotonic()+90
-            self.state={'id':secrets.token_hex(8),'state':'loading','text':'','partial':'','level':0,'mode':mode,'message':'Connecting to ZimaBoard…' if remote else 'Loading local English model…'}
+            self.state={'id':secrets.token_hex(8),'state':'loading','text':'','partial':'','level':0,'mode':mode,'message':'Preparing direct cloud dictation…' if direct else 'Connecting to ZimaBoard…' if remote else 'Loading local English model…'}
         threading.Thread(target=self._read,args=(process,),daemon=True).start()
         threading.Thread(target=self._watch,args=(process,),daemon=True).start()
         return self.snapshot()

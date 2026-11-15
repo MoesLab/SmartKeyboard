@@ -18,7 +18,7 @@ try:
                     headers={'Content-Type':'application/json','Origin':'null','Authorization':'Bearer '+config['token']},method='POST')
     try:
         with urlopen(request,timeout=10) as response:state=json.load(response)
-        report['dictation']={key:state.get(key) for key in ('state','localAvailable','engine','setupMessage')}
+        report['dictation']={key:state.get(key) for key in ('state','localAvailable','cloudAvailable','cloudRoute','engine','setupMessage')}
     except HTTPError as error:
         report['bridgeHTTPStatus']=error.code
         try:report['bridgeError']=json.loads(error.read(2000)).get('error','Request failed')

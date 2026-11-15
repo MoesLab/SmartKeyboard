@@ -59,7 +59,8 @@ def stop(*unused):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config', type=Path, required=True)
+    parser.add_argument('--config', type=Path)
+    parser.add_argument('--direct-key-dir', type=Path)
     parser.add_argument('--source')
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--mode', choices=('local','cloud'), default='local')
@@ -67,13 +68,21 @@ def main():
     process = None
     stage = 'pairing'
     try:
-        data = load_pairing(args.config)
+        direct=args.direct_key_dir is not None
+        if direct:
+            if args.mode!='cloud' or args.check:raise ValueError('Direct mode requires cloud dictation.')
+            key=(args.direct_key_dir/'openai-api-key').read_text().strip()
+            if not key.startswith('sk-') or key.count('sk-')!=1 or any(c.isspace() for c in key):raise ValueError('Invalid private API key.')
+            data=None
+        else:
+            data = load_pairing(args.config)
         if args.check:
             print(json.dumps(request(data, '/health', timeout=5))); return 0
         signal.signal(signal.SIGINT, stop); signal.signal(signal.SIGTERM, stop)
         stage = 'connection'
-        health=request(data, '/health', timeout=3)
-        if args.mode=='cloud' and not health.get('cloudAvailable'):raise ValueError('Cloud is disabled on ZimaBoard.')
+        if not direct:
+            health=request(data, '/health', timeout=3)
+            if args.mode=='cloud' and not health.get('cloudAvailable'):raise ValueError('Cloud is disabled on ZimaBoard.')
         if STOP:
             emit('done', message='Stopped before capture.'); return 0
         if not allowed_input(args.source):
@@ -81,7 +90,7 @@ def main():
         stage = 'microphone'
         from headset_audio import measure_pcm
         process = subprocess.Popen(['parec', '--device=' + args.source, '--raw', '--format=s16le', '--rate=16000', '--channels=1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        emit('ready', message='Listening on Radxa · Stop to transcribe on ZimaBoard')
+        emit('ready', message='Listening on Radxa · Stop for cloud transcription' if direct else 'Listening on Radxa · Stop to transcribe on ZimaBoard')
         recording = bytearray(); pending = b''; deadline = time.monotonic() + 60
         while not STOP and time.monotonic() < deadline and len(recording) < MAX_AUDIO:
             readable, _, _ = select.select([process.stdout], [], [], 0.25)
@@ -105,7 +114,11 @@ def main():
         if recording:
             emit('processing', message='Cloud transcription · paid audio upload' if args.mode=='cloud' else 'Transcribing on your ZimaBoard · please wait', level=0)
             stage = 'transcription'
-            result = request(data, '/transcribe-cloud' if args.mode=='cloud' else '/transcribe', bytes(recording))
+            if direct:
+                from cloud_transcription import transcribe
+                result=transcribe(args.direct_key_dir,bytes(recording))
+            else:
+                result = request(data, '/transcribe-cloud' if args.mode=='cloud' else '/transcribe', bytes(recording))
             text = result.get('text')
             if not isinstance(text, str) or len(text) > 4000:
                 raise ValueError('Invalid recognition result.')
@@ -114,7 +127,7 @@ def main():
         return 0
     except Exception:
         # No private configuration, URL credentials, or audio in error messages.
-        emit('error', message='Dictation failed at '+stage+'. Check '+{'pairing':'the private pairing file','connection':'the ZimaBoard server and LAN connection','microphone':'the Shokz microphone in Audio settings','transcription':'the ZimaBoard server log'}[stage]+'. Draft unchanged.')
+        emit('error', message='Dictation failed at '+stage+'. Check '+{'pairing':'the private pairing file','connection':'the ZimaBoard server and LAN connection','microphone':'the Shokz microphone in Audio settings','transcription':'the internet connection and API billing/access' if args.direct_key_dir else 'the ZimaBoard server log'}[stage]+'. Draft unchanged.')
         return 1
     finally:
         if process is not None:

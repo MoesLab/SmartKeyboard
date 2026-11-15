@@ -50,8 +50,8 @@ dictateButton.addEventListener('click',async()=>{
  try{
   const available=await bluetoothRequest('/api/dictation-status');dictationAvailable=available.localAvailable;renderDictation();
   if(dictationMode==='cloud'){
-   if(!available.cloudAvailable){await confirmSave('Enable cloud on ZimaBoard and Radxa first. No microphone opened and no audio uploaded.',{title:'Cloud setup required',confirmLabel:'OK'});focusEditor();return;}
-   const accepted=await confirmSave('Record up to 60 seconds from the selected Radxa microphone. When you stop, the recording goes through ZimaBoard to OpenAI for paid transcription. Review before inserting; nothing is sent to your PC.',{title:'Cloud dictation · audio upload',confirmLabel:'Start recording'});
+   if(!available.cloudAvailable){await confirmSave('Enable a direct Radxa or ZimaBoard cloud route first. No microphone opened and no audio uploaded.',{title:'Cloud setup required',confirmLabel:'OK'});focusEditor();return;}
+   const accepted=await confirmSave('Record up to 60 seconds from the selected Radxa microphone. When you stop, the recording goes to OpenAI for paid transcription using your configured direct or ZimaBoard route. Review before inserting; nothing is sent to your PC.',{title:'Cloud dictation · audio upload',confirmLabel:'Start recording'});
    if(!accepted){focusEditor();return;}
   }else if(!available.localAvailable){await confirmSave(available.setupMessage,{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
   dictationStart={draft:editor.value,range:[...selection]};
