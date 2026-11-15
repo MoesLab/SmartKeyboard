@@ -7,9 +7,9 @@ let dictationBusy=false,dictationSession='',dictationPolling=false,dictationStar
 const dictateButton=document.querySelector('#dictation-toggle');
 const dictationMeter=document.querySelector('#dictation-level');
 function renderDictation(){
- dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):dictationMode==='cloud'?'Cloud setup':'Dictate';
+ dictateButton.textContent=dictationBusy?(dictationStopRequested?'Stopping…':'Stop'):'Dictate';
  dictateButton.setAttribute('aria-pressed',String(dictationBusy));dictateButton.disabled=dictationStopRequested;
- dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Cloud is not configured. No audio is uploaded.':'Local English dictation; review before inserting. Model setup required.';
+ dictateButton.title=dictationBusy?'Stop local listening and review text':dictationMode==='cloud'?'Cloud requires explicit upload confirmation before recording.':'Local English dictation; review before inserting. Model setup required.';
  for(const button of document.querySelectorAll('[data-dictation-mode]')){button.disabled=dictationBusy;button.setAttribute('aria-pressed',String(button.dataset.dictationMode===dictationMode));}
  if(typeof renderBluetooth==='function')renderBluetooth();
 }
@@ -32,7 +32,7 @@ async function pollDictation(){
   dictationSession='';dictationBusy=false;dictationStopRequested=false;clearInterval(dictationPollTimer);dictationPollTimer=null;dictationMeter.value=0;renderDictation();
   if(!text){status.textContent=state.state==='error'?state.message:'No speech recognized. Your draft is unchanged.';return;}
   const range=editor.value===dictationStart.draft?[...dictationStart.range]:[...selection];
-  const accepted=await confirmSave((state.state==='error'?'Recognition stopped early. Review this partial result.\n\n':'')+text+'\n\nInsert at the selected composer position? Nothing has been sent to your PC.',{title:'Review local English dictation',confirmLabel:'Insert text'});
+  const accepted=await confirmSave((state.state==='error'?'Recognition stopped early. Review this partial result.\n\n':'')+text+'\n\nInsert at the selected composer position? Nothing has been sent to your PC.',{title:dictationMode==='cloud'?'Review cloud dictation':'Review local English dictation',confirmLabel:'Insert text'});
   if(accepted){
    selection=range;
    const before=editor.value.slice(0,range[0]),after=editor.value.slice(range[1]);
@@ -48,14 +48,15 @@ dictateButton.addEventListener('click',async()=>{
  if(dictationActionBusy)return;
  dictationActionBusy=true;
  try{
-  if(dictationMode==='cloud'){
-   await confirmSave('Cloud recognition is not configured. No microphone will open and no audio will be uploaded. Local English is available after installing and benchmarking its small model.',{title:'Cloud dictation setup',confirmLabel:'OK'});focusEditor();return;
-  }
   const available=await bluetoothRequest('/api/dictation-status');dictationAvailable=available.localAvailable;renderDictation();
-  if(!available.localAvailable){await confirmSave(available.setupMessage+'\n\nConfigure the tested local engine in MobaXterm. ZimaBoard uses a private pairing file; on-device recognition requires its own benchmark. Your existing keyboard remains usable.',{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
+  if(dictationMode==='cloud'){
+   if(!available.cloudAvailable){await confirmSave('Enable cloud on ZimaBoard and Radxa first. No microphone opened and no audio uploaded.',{title:'Cloud setup required',confirmLabel:'OK'});focusEditor();return;}
+   const accepted=await confirmSave('Record up to 60 seconds from the selected Radxa microphone. When you stop, the recording goes through ZimaBoard to OpenAI for paid transcription. Review before inserting; nothing is sent to your PC.',{title:'Cloud dictation · audio upload',confirmLabel:'Start recording'});
+   if(!accepted){focusEditor();return;}
+  }else if(!available.localAvailable){await confirmSave(available.setupMessage,{title:'Local English setup required',confirmLabel:'OK'});focusEditor();return;}
   dictationStart={draft:editor.value,range:[...selection]};
   await stopMicMeter();
-  const state=await bluetoothRequest('/api/dictation-start',{mode:'local'});
+  const state=await bluetoothRequest('/api/dictation-start',{mode:dictationMode});
   dictationSession=state.id;dictationBusy=true;dictationStopRequested=false;status.textContent=state.message;renderDictation();
   dictationPollTimer=setInterval(pollDictation,350);pollDictation();focusEditor();
  }catch(error){status.textContent=error.message;focusEditor();}
@@ -64,7 +65,7 @@ dictateButton.addEventListener('click',async()=>{
 for(const button of document.querySelectorAll('[data-dictation-mode]'))button.addEventListener('click',()=>{
  if(dictationBusy)return;dictationMode=button.dataset.dictationMode;
  try{localStorage.setItem('smartKeyboard.dictationMode',dictationMode);}catch{}
- renderDictation();status.textContent=dictationMode==='local'?'Local English selected. Recognition runs only after Dictate.':'Cloud selected, but not configured. No audio will be uploaded.';focusEditor();
+ renderDictation();status.textContent=dictationMode==='local'?'Local English selected. Recognition runs only after Dictate.':'Cloud selected. Dictate asks before recording and paid upload.';focusEditor();
 });
 document.querySelector('#composer-audio-open').addEventListener('pointerdown',event=>event.preventDefault());
 document.querySelector('#composer-audio-open').addEventListener('click',()=>{

@@ -11,6 +11,7 @@ import signal
 import ssl
 import subprocess
 import time
+from audio_preferences import allowed_input
 
 STOP = False
 MAX_AUDIO = 16000 * 2 * 60
@@ -61,6 +62,7 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--source')
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--mode', choices=('local','cloud'), default='local')
     args = parser.parse_args()
     process = None
     stage = 'pairing'
@@ -70,10 +72,11 @@ def main():
             print(json.dumps(request(data, '/health', timeout=5))); return 0
         signal.signal(signal.SIGINT, stop); signal.signal(signal.SIGTERM, stop)
         stage = 'connection'
-        request(data, '/health', timeout=3)
+        health=request(data, '/health', timeout=3)
+        if args.mode=='cloud' and not health.get('cloudAvailable'):raise ValueError('Cloud is disabled on ZimaBoard.')
         if STOP:
             emit('done', message='Stopped before capture.'); return 0
-        if args.source != 'bluez_source.C0_86_B3_F2_E8_96.headset_head_unit':
+        if not allowed_input(args.source):
             raise ValueError('Select the confirmed OpenComm2 microphone.')
         stage = 'microphone'
         from headset_audio import measure_pcm
@@ -100,9 +103,9 @@ def main():
                 emit('partial', text='', level=level, db=db)
         process.terminate(); process.wait(timeout=2); process.stdout.close(); process = None
         if recording:
-            emit('processing', message='Transcribing on your ZimaBoard · please wait', level=0)
+            emit('processing', message='Cloud transcription · paid audio upload' if args.mode=='cloud' else 'Transcribing on your ZimaBoard · please wait', level=0)
             stage = 'transcription'
-            result = request(data, '/transcribe', bytes(recording))
+            result = request(data, '/transcribe-cloud' if args.mode=='cloud' else '/transcribe', bytes(recording))
             text = result.get('text')
             if not isinstance(text, str) or len(text) > 4000:
                 raise ValueError('Invalid recognition result.')

@@ -414,13 +414,19 @@ class Controller:
             if route=='/api/dictation-stop':return self.dictation.stop()
             if self.queue:raise ValueError('Wait for sending to finish before starting dictation.')
             return self.dictation.start(data)
-        if route in ('/api/audio-status','/api/audio-volume','/api/audio-test','/api/audio-meter-start','/api/audio-meter-status','/api/audio-meter-stop'):
-            if route in ('/api/audio-meter-start','/api/audio-test') and hasattr(self,'dictation') and self.dictation.process is not None:raise ValueError('Stop dictation before a separate headset test.')
-            if self.queue and route not in ('/api/audio-meter-status','/api/audio-meter-stop'):raise ValueError('Wait for sending to finish before adjusting headset audio.')
+        if route in ('/api/audio-status','/api/audio-volume','/api/audio-test','/api/audio-meter-start','/api/audio-meter-status','/api/audio-meter-stop','/api/audio-input','/api/audio-mute','/api/audio-record','/api/audio-playback','/api/audio-check-status','/api/audio-reconnect'):
+            if route not in ('/api/audio-status','/api/audio-check-status','/api/audio-meter-status','/api/audio-meter-stop') and hasattr(self,'dictation') and self.dictation.process is not None:raise ValueError('Stop dictation before a separate headset test.')
+            if self.queue and route not in ('/api/audio-meter-status','/api/audio-meter-stop','/api/audio-input','/api/audio-mute','/api/audio-record','/api/audio-playback','/api/audio-check-status','/api/audio-reconnect'):raise ValueError('Wait for sending to finish before adjusting headset audio.')
             if not hasattr(self,'audio'):
                 if not hasattr(self,'audio_home'):raise ValueError('Audio controls unavailable; reinstall the backend.')
                 self.audio=HeadsetAudio(self.audio_home)
             if route=='/api/audio-status':return self.audio.status()
+            if route=='/api/audio-input':return self.audio.choose_input(data)
+            if route=='/api/audio-mute':return self.audio.mute_input(data)
+            if route=='/api/audio-record':return self.audio.record_check(data)
+            if route=='/api/audio-playback':return self.audio.playback_check(data)
+            if route=='/api/audio-check-status':return self.audio.check.snapshot()
+            if route=='/api/audio-reconnect':return self.audio.reconnect(data)
             if route=='/api/audio-volume':return self.audio.set_volume(data)
             if route=='/api/audio-test':return self.audio.play_test(data)
             if route=='/api/audio-meter-start':return self.audio.start_meter(data)

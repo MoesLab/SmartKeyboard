@@ -322,3 +322,46 @@ No driver/model/browser data need removal. Stop Zima server with its verified PI
 (inspect `ps -p "$(cat /mnt/camera-ssd/SmartKeyboard-STT/server.pid)" -o args=`
 before `kill`); no service was installed. Future autostart is a separate step
 after actual headset/network success. Existing CasaOS apps and recordings are untouched.
+
+
+## Explicit cloud dictation and selectable Radxa inputs
+
+The USB mic -> ZimaBoard -> gpt-transcribe user test returned the complete test
+sentence correctly in 1.5s. Shokz -> Radxa -> cloud remains a hardware trial:
+SCO crackle and connection errors can still harm accuracy. No driver changes here.
+
+On CasaOS pull the source and restart only the previously launched speech server
+with `--cloud`. API key stays at SSD `openai-api-key` mode 600 and is never sent
+to Radxa, browser, logs or Git. Preserve pairing/certificate identities. Verify the
+saved PID is exactly the existing zima_stt_server.py process before stopping it.
+Start using the same nohup command above with `--cloud` appended. No boot-service
+or firewall change. Then run Radxa's stdlib worker --check: health now includes
+cloudAvailable=true. Local remains Vosk with no external upload. Only the separate
+authenticated /transcribe-cloud endpoint calls OpenAI, once, with TLS, <=60s WAV,
+60s network timeout, no redirects/retries or recording files. No text cleanup or
+gap-filling step is included; review the transcript explicitly.
+
+Checkpoint Radxa before copying code; copy backend/*.py to avoid root-owned
+__pycache__. Install the backend and run scripts/enable-cloud-stt.py as radxa.
+--disable reverses the cloud configuration without removing Local or secrets.
+Cloud must also be enabled in Zima's running server. Each Cloud Dictate action
+requires themed confirmation before capture/upload. Stop/review/Insert never SENDs.
+The initial request checks server health before opening the mic. No upload occurs
+in Local or the audio recording test. UI and physical hardware still need user test.
+
+Audio settings select the known Shokz headset (preferred default) or a detected
+USB PulseAudio source physically connected to Radxa. Selecting a disconnected
+headset is allowed for later reconnect, but recording fails rather than taking
+another microphone. Chosen source is in config/audio-input.json, not browser backup.
+USB attached to ZimaBoard is NOT redirected by this selector; it remains the
+standalone known-good comparison. Gain/mute operate only on detected endpoints;
+USB input gain never overwrites Shokz startup settings. HDMI/monitor sources remain
+excluded. USB microphone playback needs Shokz or a detected USB output on Radxa.
+
+Record 4 seconds captures bounded RAM-only audio on a background thread, then Play
+recording uses the selected output. Tests expire after 60s; none are uploaded.
+Existing meter remains explicit and leased. Dictation/test/meter/reconnect
+conflicts are rejected. Reconnect Shokz only requests the project's existing tested
+headset restore service asynchronously, guarded by the known patched driver identity.
+It does not reload drivers, change Wi-Fi/EZ Signage/display, or pair new headsets.
+No new GUI canvas positions, editor sizes, saved macros or Chromium profiles change.

@@ -232,3 +232,7 @@ button:active::after,button[aria-pressed="true"]::after { box-shadow:inset 0 1px
 
 /* Reserve a font-independent title slot; do not move editor or controls. */
 .composer .panel-heading > h2 { flex:0 0 240.875px; width:240.875px; overflow:hidden; }
+
+/* Audio settings only; main canvas and control geometry are unchanged. */
+#headset-audio select { width:320px; max-width:100%; height:42px; font-size:17px; color:var(--cyan); background:#101c2b; border:1px solid var(--cyan); }
+#headset-audio .appearance-row>label { min-width:0; font-size:18px; }

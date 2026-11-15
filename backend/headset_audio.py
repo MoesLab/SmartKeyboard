@@ -10,6 +10,8 @@ import struct
 import threading
 import time
 import wave
+from audio_preferences import allowed_input, selected, save, HEADSET, verify_headset_driver
+from audio_check import AudioCheck
 from pathlib import Path
 import re
 import shutil
@@ -24,7 +26,8 @@ def parse_devices(output, kind):
             return found.group(1) if found else ''
         name=field('Name')
         prefix='bluez_sink.' if kind=='output' else 'bluez_source.'
-        if not name.startswith(prefix) or name.endswith('.monitor'):continue
+        if name.endswith('.monitor'):continue
+        if not (name.startswith(prefix) or (kind=='input' and name.startswith('alsa_input.usb-')) or (kind=='output' and name.startswith('alsa_output.usb-'))):continue
         percentages=re.findall(r'(\d+)%',field('Volume'))
         if not percentages:continue
         devices.append({'name':name,'description':field('Description') or name,
@@ -35,6 +38,7 @@ def parse_devices(output, kind):
 class HeadsetAudio:
     def __init__(self,app_home,runner=None):
         self.startup_config=Path(app_home)/'config/headset-startup.json' if app_home else None
+        self.app_home=Path(app_home) if app_home else None;self.check=AudioCheck()
         self.session_prefix=None;self.meter_lock=threading.Lock();self.meter_process=None
         self.meter_deadline=0;self.meter_level=0;self.meter_db=-60;self.meter_message='Microphone level check stopped.'
         if runner is not None:
@@ -64,8 +68,42 @@ class HeadsetAudio:
         self.run=run
 
     def status(self):
-        return {'outputs':[d for d in parse_devices(self.run(['list','sinks']),'output') if d['name'].startswith('bluez_sink.C0_86_B3_F2_E8_96.')],
-                'inputs':[d for d in parse_devices(self.run(['list','sources']),'input') if d['name'].startswith('bluez_source.C0_86_B3_F2_E8_96.')]}
+        return {'outputs':[d for d in parse_devices(self.run(['list','sinks']),'output') if d['name'].startswith(('bluez_sink.C0_86_B3_F2_E8_96.','alsa_output.usb-'))],
+                'inputs':[d for d in parse_devices(self.run(['list','sources']),'input') if allowed_input(d['name'])],
+                'selectedInput':selected(self.app_home) if self.app_home else HEADSET}
+
+    def choose_input(self,data):
+        name=data.get('name')
+        if name!=HEADSET and not any(d['name']==name for d in self.status()['inputs']):raise ValueError('USB microphone is not connected to Radxa.')
+        self.stop_meter();save(self.app_home,name)
+        return self.status()
+
+    def microphone_guard(self,name):
+        if name==HEADSET and self.app_home:verify_headset_driver(self.app_home)
+
+    def mute_input(self,data):
+        name=data.get('name');muted=data.get('muted')
+        if type(muted) is not bool or not any(d['name']==name for d in self.status()['inputs']):raise ValueError('Select a connected microphone.')
+        self.run(['set-source-mute',name,'1' if muted else '0']);return self.status()
+
+    def record_check(self,data):
+        name=selected(self.app_home)
+        if not any(d['name']==name for d in self.status()['inputs']):raise ValueError('Selected microphone unavailable.')
+        self.microphone_guard(name);self.stop_meter()
+        if self.session_prefix is None:raise ValueError('Desktop audio unavailable.')
+        return self.check.start(self.session_prefix,name)
+
+    def playback_check(self,data):
+        output=data.get('name')
+        if not any(d['name']==output for d in self.status()['outputs']):raise ValueError('Select a connected headset or USB playback device.')
+        if self.session_prefix is None:raise ValueError('Desktop audio unavailable.')
+        return self.check.start(self.session_prefix,None,output)
+
+    def reconnect(self,data):
+        self.microphone_guard(HEADSET)
+        if self.check.active or self.meter_process is not None:raise ValueError('Stop microphone tests before reconnecting.')
+        subprocess.run(['/bin/systemctl','restart','--no-block','smartkeyboard-headset-restore.service'],check=True,timeout=2,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        return {'message':'Headset restore requested. Keep Shokz on; Refresh audio after several seconds. Bluetooth mic quality is not guaranteed.'}
 
     def set_volume(self,data):
         kind=data.get('kind');name=data.get('name');volume=data.get('volume')
@@ -77,7 +115,8 @@ class HeadsetAudio:
             raise ValueError('The selected headset endpoint is unavailable. Refresh audio controls.')
         self.run(['set-sink-volume' if kind=='output' else 'set-source-volume',name,str(volume)+'%'])
         result=self.status()
-        try:self.save_startup_gain(kind,volume)
+        try:
+            if name.startswith(('bluez_source.','bluez_sink.')):self.save_startup_gain(kind,volume)
         except (OSError,ValueError,KeyError,TypeError):result['warning']='Level changed, but startup saving failed. Keep the current session and check headset-startup.json.'
         return result
 
@@ -116,6 +155,8 @@ class HeadsetAudio:
         name=data.get('name')
         if not any(device['name']==name for device in self.status()['inputs']):
             raise ValueError('No OpenComm2 microphone is available in the current audio mode.')
+        self.microphone_guard(name)
+        if self.check.active:raise ValueError('Wait for the recording test to finish.')
         executable=shutil.which('parec')
         if not executable or self.session_prefix is None:raise ValueError('Microphone level helper unavailable.')
         self.stop_meter()

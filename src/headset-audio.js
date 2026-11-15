@@ -1,8 +1,16 @@
 'use strict';
 let headsetAudioState=null,headsetAudioBusy=false;
 const headsetAudioMessage=document.querySelector('#headset-audio-message');
-function preferredHeadset(devices){return devices?.find(d=>d.name.includes('C0_86_B3_F2_E8_96'));}
+function preferredHeadset(devices){const name=devices===headsetAudioState?.inputs?(headsetAudioState?.selectedInput||'bluez_source.C0_86_B3_F2_E8_96.headset_head_unit'):document.querySelector('#audio-output-select').value;return devices?.find(d=>d.name===name)||((devices!==headsetAudioState?.inputs)?devices?.find(d=>d.name.includes('C0_86_B3_F2_E8_96')):undefined);}
 function renderHeadsetAudio(){
+ for(const [id,devices,selected] of [['audio-input-select',headsetAudioState?.inputs,headsetAudioState?.selectedInput],['audio-output-select',headsetAudioState?.outputs,document.querySelector('#audio-output-select').value]]){
+  const select=document.getElementById(id),list=[...(devices||[])];
+  if(id==='audio-input-select'&&!list.some(d=>d.name==='bluez_source.C0_86_B3_F2_E8_96.headset_head_unit'))list.unshift({name:'bluez_source.C0_86_B3_F2_E8_96.headset_head_unit',description:'Shokz (not currently available)'});
+  select.replaceChildren(...list.map(d=>{const option=document.createElement('option');option.value=d.name;option.textContent=d.description||d.name;return option;}));
+  if(list.some(d=>d.name===selected))select.value=selected;
+  select.disabled=headsetAudioBusy;
+ }
+
  for(const kind of ['output','input']){
   const device=preferredHeadset(headsetAudioState?.[kind==='output'?'outputs':'inputs']);
   for(const button of document.querySelectorAll(`[data-headset-kind="${kind}"]`)){
@@ -19,7 +27,7 @@ async function refreshHeadsetAudio(){
  headsetAudioBusy=true;renderHeadsetAudio();headsetAudioMessage.textContent='Checking headset audio…';
  try{
   headsetAudioState=await bluetoothRequest('/api/audio-status');
-  headsetAudioMessage.textContent=headsetAudioState.inputs?.length?'Headset levels only. HDMI, tone volume and audio mode stay unchanged.':headsetAudioState.outputs?.length?'Headset listening volume is available. No headset microphone is currently exposed.':'Connect your headset, then Refresh audio.';
+  headsetAudioMessage.textContent=headsetAudioState.inputs?.length?'Adjust the selected Radxa microphone. HDMI and tone volume stay unchanged.':headsetAudioState.outputs?.length?'Headset listening volume is available. No headset microphone is currently exposed.':'Connect your headset, then Refresh audio.';
  }catch(error){headsetAudioState=null;headsetAudioMessage.textContent=error.message.includes('fetch')?'Audio bridge unavailable. Update the backend, then Refresh audio.':error.message;}
  finally{headsetAudioBusy=false;renderHeadsetAudio();}
 }
@@ -91,3 +99,32 @@ document.querySelector('#headset-audio-test').addEventListener('click',async()=>
 renderMicMeter();
 
 window.refreshHeadsetMicControls=renderMicMeter;
+
+document.querySelector('#audio-input-select').addEventListener('change',async event=>{
+ await stopMicMeter();
+ try{headsetAudioState=await bluetoothRequest('/api/audio-input',{name:event.target.value});headsetAudioMessage.textContent='Input saved. Dictate will use this microphone only.';}
+ catch(error){headsetAudioMessage.textContent=error.message;}renderHeadsetAudio();
+});
+document.querySelector('#audio-output-select').addEventListener('change',renderHeadsetAudio);
+document.querySelector('#audio-mic-mute').addEventListener('click',async()=>{
+ const device=preferredHeadset(headsetAudioState?.inputs);if(!device)return;
+ try{headsetAudioState=await bluetoothRequest('/api/audio-mute',{name:device.name,muted:!device.muted});renderHeadsetAudio();}catch(error){headsetAudioMessage.textContent=error.message;}
+});
+document.querySelector('#audio-reconnect').addEventListener('click',async()=>{
+ await stopMicMeter();
+ try{const result=await bluetoothRequest('/api/audio-reconnect');headsetAudioMessage.textContent=result.message;}catch(error){headsetAudioMessage.textContent=error.message;}
+});
+let audioCheckTimer=null;
+async function audioCheckAction(path,data={}){
+ await stopMicMeter();
+ try{
+  const result=await bluetoothRequest(path,data);document.querySelector('#audio-record-status').textContent=result.message;
+  clearInterval(audioCheckTimer);audioCheckTimer=setInterval(async()=>{
+   try{const state=await bluetoothRequest('/api/audio-check-status');document.querySelector('#audio-record-status').textContent=state.message;if(!state.active){clearInterval(audioCheckTimer);audioCheckTimer=null;}}
+   catch{clearInterval(audioCheckTimer);audioCheckTimer=null;}
+  },500);
+ }catch(error){document.querySelector('#audio-record-status').textContent=error.message;}
+}
+document.querySelector('#audio-record').addEventListener('click',()=>audioCheckAction('/api/audio-record'));
+document.querySelector('#audio-playback').addEventListener('click',()=>{const device=preferredHeadset(headsetAudioState?.outputs);if(device)audioCheckAction('/api/audio-playback',{name:device.name});});
+document.addEventListener('settingschange',()=>{if(!settingsOpen){clearInterval(audioCheckTimer);audioCheckTimer=null;}});

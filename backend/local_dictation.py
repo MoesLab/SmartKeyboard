@@ -8,6 +8,7 @@ import subprocess
 import threading
 import time
 from zima_dictation_worker import load_pairing
+from audio_preferences import selected, HEADSET, verify_headset_driver
 
 
 class LocalDictation:
@@ -15,12 +16,17 @@ class LocalDictation:
         self.app=Path(app_home);self.audio=audio;self.lock=threading.Lock();self.process=None;self.deadline=0
         self.state={'id':'','state':'idle','text':'','partial':'','level':0,'message':'Local English dictation is idle.'}
 
+    def cloud_enabled(self):
+        try:
+            return json.loads((self.app/'config/cloud-stt.json').read_text()).get('enabled') is True
+        except (OSError,ValueError,TypeError,AttributeError):return False
+
     def availability(self):
         pairing=self.app/'config/zima-stt.json'
         if pairing.exists():
             try:
                 load_pairing(pairing)
-                return {'localAvailable':True,'cloudAvailable':False,'language':'en-US','engine':'zima',
+                return {'localAvailable':True,'cloudAvailable':self.cloud_enabled(),'language':'en-US','engine':'zima',
                         'setupMessage':'Local-network English recognition on your paired ZimaBoard.'}
             except (OSError,ValueError,KeyError,TypeError):
                 return {'localAvailable':False,'cloudAvailable':False,'language':'en-US','engine':'zima',
@@ -43,7 +49,9 @@ class LocalDictation:
             return dict(self.state,**self.availability())
 
     def start(self,data):
-        if data.get('mode','local')!='local':raise ValueError('Cloud dictation is not configured. No audio was uploaded.')
+        mode=data.get('mode','local')
+        if mode not in ('local','cloud'):raise ValueError('Unknown dictation mode.')
+        if mode=='cloud' and not self.availability().get('cloudAvailable'):raise ValueError('Cloud dictation is not configured. No audio was uploaded.')
         if not self.availability()['localAvailable']:raise ValueError('Local English model is not installed. Run install-local-stt.py first.')
         memory=Path('/proc/meminfo')
         if memory.exists():
@@ -51,24 +59,20 @@ class LocalDictation:
             if self.availability().get('engine')!='zima' and available<512*1024:raise ValueError('Local dictation needs more free RAM. Keyboard and draft are unchanged.')
         with self.lock:
             if self.process is not None:raise ValueError('Dictation is already running.')
-        try:
-            expected=json.loads((self.app/'config/headset-startup.json').read_text())
-            loaded=Path('/sys/module/aic_btusb/srcversion').read_text().strip()
-            if not isinstance(expected,dict):raise ValueError('Invalid saved driver identity')
-            if expected.get('kernel')!=os.uname().release or loaded!=expected.get('srcversion'):raise ValueError('Driver mismatch')
-        except (OSError,ValueError):raise ValueError('The persisted, tested headset driver must be loaded before dictating.')
-        source='bluez_source.C0_86_B3_F2_E8_96.headset_head_unit'
-        if not any(d['name']==source for d in self.audio.status()['inputs']):raise ValueError('OpenComm2 microphone is unavailable. Restore its tested voice mode first.')
+        source=selected(self.app)
+        if source==HEADSET:verify_headset_driver(self.app)
+        if not any(d['name']==source for d in self.audio.status()['inputs']):raise ValueError('Selected microphone unavailable. Use Audio settings; no other microphone was substituted.')
         if self.audio.session_prefix is None:raise ValueError('Desktop audio session is unavailable.')
+        if getattr(getattr(self.audio,'check',None),'active',False) is True:raise ValueError('Wait for the microphone test to finish.')
         self.audio.stop_meter()
         command=self.audio.session_prefix+[str(self.app/'.venv-stt/bin/python'),str(Path(__file__).with_name('local_dictation_worker.py')),'--model',str(self.app/'models/vosk-model-small-en-us-0.15'),'--source',source]
         remote=self.availability().get('engine')=='zima'
         if remote:
-            command=self.audio.session_prefix+['/usr/bin/python3',str(Path(__file__).with_name('zima_dictation_worker.py')),'--config',str(self.app/'config/zima-stt.json'),'--source',source]
+            command=self.audio.session_prefix+['/usr/bin/python3',str(Path(__file__).with_name('zima_dictation_worker.py')),'--config',str(self.app/'config/zima-stt.json'),'--source',source,'--mode',mode]
         process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding='utf-8',bufsize=1,start_new_session=True)
         with self.lock:
             self.process=process;self.deadline=time.monotonic()+5;self.hard_deadline=time.monotonic()+90
-            self.state={'id':secrets.token_hex(8),'state':'loading','text':'','partial':'','level':0,'message':'Loading local English model…'}
+            self.state={'id':secrets.token_hex(8),'state':'loading','text':'','partial':'','level':0,'mode':mode,'message':'Connecting to ZimaBoard…' if remote else 'Loading local English model…'}
         threading.Thread(target=self._read,args=(process,),daemon=True).start()
         threading.Thread(target=self._watch,args=(process,),daemon=True).start()
         return self.snapshot()

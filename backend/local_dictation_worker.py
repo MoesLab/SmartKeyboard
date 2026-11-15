@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 import wave
+from audio_preferences import allowed_input
 
 STOP=False
 
@@ -59,7 +60,7 @@ def main():
             import resource
             emit('benchmark',modelLoadSeconds=round(load_seconds,3),audioSeconds=round(audio_seconds,3),recognitionSeconds=round(elapsed,3),realtimeFactor=round(elapsed/max(audio_seconds,0.01),3),peakMemoryMiB=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,1),text=' '.join(filter(None,parts)),cpuCores=1)
             return 0
-        if args.source!='bluez_source.C0_86_B3_F2_E8_96.headset_head_unit':raise ValueError('Select the confirmed OpenComm2 microphone.')
+        if not allowed_input(args.source):raise ValueError('Select the confirmed OpenComm2 microphone.')
         if STOP:emit('done',message='Stopped before listening.');return 0
         from headset_audio import measure_pcm
         signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)

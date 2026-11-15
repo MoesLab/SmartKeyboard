@@ -66,7 +66,7 @@ def recognize(model, pcm):
             'recognitionSeconds': round(time.monotonic() - started, 3)}
 
 
-def handler_for(config, transcribe):
+def handler_for(config, transcribe, cloud=None):
     busy = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
@@ -99,9 +99,11 @@ def handler_for(config, transcribe):
             except ValueError:
                 length = -1
             if self.path == '/health' and length == 0:
-                self.reply(200, {'ready': True, 'engine': 'ZimaBoard local English'}); return
-            if self.path != '/transcribe':
+                self.reply(200, {'ready': True, 'engine': 'ZimaBoard local English', 'cloudAvailable': cloud is not None}); return
+            if self.path not in ('/transcribe','/transcribe-cloud'):
                 self.reply(404, {'error': 'Unknown endpoint.'}); return
+            if self.path=='/transcribe-cloud' and cloud is None:
+                self.reply(503, {'error':'Cloud is not enabled on ZimaBoard.'}); return
             if length <= 0 or length > MAX_AUDIO or length % 2:
                 self.reply(400, {'error': 'Expected up to 60 seconds of mono 16kHz signed 16-bit PCM.'}); return
             if self.headers.get('Content-Type') != 'application/octet-stream':
@@ -112,7 +114,7 @@ def handler_for(config, transcribe):
                 pcm = self.rfile.read(length)
                 if len(pcm) != length:
                     self.reply(400, {'error': 'Incomplete recording.'}); return
-                result = transcribe(pcm)
+                result = cloud(pcm) if self.path=='/transcribe-cloud' else transcribe(pcm)
                 self.reply(200, result)
             except (OSError, ValueError, RuntimeError):
                 try:
@@ -152,6 +154,7 @@ def main():
     parser.add_argument('--host', default='192.168.0.16')
     parser.add_argument('--client', default='192.168.0.17')
     parser.add_argument('--check', type=Path)
+    parser.add_argument('--cloud', action='store_true', help='Explicitly enable paid cloud endpoint with private key file.')
     args = parser.parse_args()
     if args.init:
         initialize(args.root, args.host, args.client); return
@@ -164,7 +167,12 @@ def main():
     from vosk import Model, SetLogLevel
     SetLogLevel(-1)
     model = Model(str(args.root / 'models/vosk-model-small-en-us-0.15'))
-    server = ThreadingHTTPServer(('0.0.0.0', config['port']), handler_for(config, lambda pcm: recognize(model, pcm)))
+    cloud=None
+    if args.cloud:
+        if not (args.root/'openai-api-key').is_file():raise ValueError('Private cloud key file missing.')
+        from cloud_transcription import transcribe as cloud_transcribe
+        cloud=lambda pcm:cloud_transcribe(args.root,pcm)
+    server = ThreadingHTTPServer(('0.0.0.0', config['port']), handler_for(config, lambda pcm: recognize(model, pcm),cloud))
     server.daemon_threads = True
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2

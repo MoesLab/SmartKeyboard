@@ -40,6 +40,11 @@ class EndpointTests(unittest.TestCase):
         self.assertEqual(self.send('/transcribe',b'\0\0',False)[0],401)
         self.assertEqual(self.calls,[])
 
+    def test_cloud_endpoint_is_disabled_by_default(self):
+        self.assertEqual(self.send('/transcribe-cloud',b'00')[0],503)
+        self.assertFalse(self.send('/health')[1]['cloudAvailable'])
+        self.assertEqual(self.calls,[])
+
     def test_valid_health_and_audio(self):
         self.assertTrue(self.send('/health')[1]['ready'])
         self.assertEqual(self.send('/transcribe',b'\0\0')[1]['text'],'hello world')

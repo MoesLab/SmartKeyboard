@@ -21,3 +21,7 @@ config/headset-startup.json
 **/zima-stt.json
 **/server.key
 **/server.crt
+
+**/openai-api-key
+**/cloud-stt.json
+**/audio-input.json
